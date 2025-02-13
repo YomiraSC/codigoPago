@@ -10,51 +10,74 @@ export const authOptions = {
         password: { label: "Contraseña", type: "password" },
       },
       async authorize(credentials) {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+        try {
+          const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-        const res = await fetch(`${API_URL}/login`, {
-          method: "POST",
-          body: JSON.stringify(credentials),
-          headers: { "Content-Type": "application/json" },
-        });
+          const res = await fetch(`${API_URL}/login`, {
+            method: "POST",
+            body: JSON.stringify(credentials),
+            headers: { "Content-Type": "application/json" },
+          });
 
-        const user = await res.json();
-        console.log("Usuario devuelto por Flask:", user);
+          const user = await res.json();
+          console.log("Usuario devuelto por Flask:", user);
 
-        if (res.ok && user.token) {
+          if (!res.ok || !user.token) {
+            throw new Error(user.message || "Credenciales incorrectas");
+          }
+
           return {
             id: user.id,
             name: user.name,
             email: user.email,
-            role: user.role,
+            role: user.role, // 🔹 Se obtiene el rol del backend
             token: user.token,
+            expiresAt: Date.now() + user.expiresIn * 1000, // 🔹 Calculamos la expiración
           };
+        } catch (error) {
+          console.error("Error en la autenticación:", error);
+          throw new Error("Error en la autenticación");
         }
-
-        return null;
       },
     }),
   ],
   pages: {
-    signIn: "/",
+    signIn: "/login", // 🔹 Redirige a esta página cuando el usuario no está autenticado
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.role = user.role;
         token.token = user.token;
+        token.expiresAt = user.expiresAt; // 🔹 Guardamos la expiración del token
       }
+
+      // 🔹 Si el token ha expirado, cerrar sesión forzosamente
+      if (Date.now() > token.expiresAt) {
+        console.log("🔄 Token expirado. Forzando cierre de sesión.");
+        return null; // 🔹 Devolver `null` para invalidar la sesión
+      }
+
       console.log("Token en JWT:", token);
       return token;
     },
     async session({ session, token }) {
+      if (!token) {
+        console.log("❌ Token expirado o inválido. Cerrando sesión.");
+        return null; // 🔹 Invalidar sesión
+      }
+
       session.user.role = token.role;
       session.user.token = token.token;
+
       console.log("Sesión en NextAuth:", session);
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  session: {
+    strategy: "jwt", // 🔹 Usamos JWT en lugar de base de datos para manejar sesiones
+  },
+  secret: process.env.NEXTAUTH_SECRET, // 🔹 Clave secreta para cifrar sesiones
 };
 
 const handler = NextAuth(authOptions);

@@ -1,15 +1,24 @@
-"use client"; // Este archivo debe ser un componente cliente
-
+"use client";
 import { usePathname } from "next/navigation";
 import Layout from "./Layout";
 import { SessionProvider } from "next-auth/react";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function ClientWrapper({ children }) {
   const pathname = usePathname();
-  const excludedRoutes = ["/login", "/register"]; // Rutas donde no se aplicará el Layout
-
-  // Verifica si la ruta actual está en las rutas excluidas
+  const excludedRoutes = ["/login", "/register"]; // Rutas sin layout
   const isExcluded = excludedRoutes.includes(pathname);
 
-  return isExcluded ? children : <SessionProvider><Layout>{children}</Layout></SessionProvider>;
+  return (
+    <SessionProvider>
+      <AuthWrapper>
+        {isExcluded ? children : <Layout>{children}</Layout>}
+      </AuthWrapper>
+    </SessionProvider>
+  );
+}
+
+function AuthWrapper({ children }) {
+  useAuth();
+  return children;
 }
