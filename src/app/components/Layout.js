@@ -276,7 +276,7 @@ export default function Layout({ children }) {
           p: 3,
           transition: "margin-left 0.3s",
           bgcolor: "#F7FAFC",
-          height: "100%",
+          height: "100vh",
         }}
       >
         <Toolbar />

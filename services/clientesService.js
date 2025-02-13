@@ -21,3 +21,13 @@ export const fetchClientes = async ({ page, pageSize, filters, sortModel }) => {
     return { clientes: [], total: 0 };
   }
 };
+
+export const fetchClienteById = async (id) => {
+    try {
+      const response = await axiosInstance.get(`/clientes/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error al obtener detalle del cliente:", error);
+      return null;
+    }
+  };
