@@ -162,7 +162,7 @@ export default function Layout({ children }) {
         </ListItem>*/}
         <ListItem
           button="true"
-          onClick={() => router.push("/citas")}
+          onClick={() => router.push("/promesasPago")}
           sx={{
             "&:hover": { bgcolor: "#2D3748" },
             px: 3,
@@ -172,7 +172,7 @@ export default function Layout({ children }) {
           <ListItemIcon sx={{ color: "#fff" }}>
             <CalendarMonthIcon />
           </ListItemIcon>
-          <ListItemText primary="Citas" />
+          <ListItemText primary="Promesas de Pago" />
         </ListItem>
         <ListItem
           button="true"
@@ -234,7 +234,7 @@ export default function Layout({ children }) {
             component="div"
             sx={{ flexGrow: 1, fontWeight: "bold" }}
           >
-            CRM DE PATRICIA
+            CRM  DE REACTIVACIONES
           </Typography>
           <IconButton color="inherit" sx={{ mr: 2 }}>
             <NotificationsIcon />
@@ -276,7 +276,7 @@ export default function Layout({ children }) {
           p: 3,
           transition: "margin-left 0.3s",
           bgcolor: "#F7FAFC",
-          height: "100vh",
+          height: "100%",
         }}
       >
         <Toolbar />

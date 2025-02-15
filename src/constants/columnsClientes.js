@@ -5,45 +5,41 @@ import { useRouter } from "next/navigation";
 import ActionButton from "@/app/components/ActionButton";
 // 🔹 Función para estilizar etiquetas de estado
 const getEstadoStyle = (estado) => {
-    const styles = {
-      "Activo": { 
-        color: "rgba(76, 175, 80, 0.9)", // Verde más intenso
-        backgroundColor: "rgba(76, 175, 80, 0.3)", // Verde con opacidad
-        fontWeight: "normal" 
-      },
-      "Interesado": { 
-        color: "rgba(255, 152, 0, 0.9)", // Amarillo más intenso
-        backgroundColor: "rgba(255, 235, 59, 0.3)",
-        fontWeight: "normal" 
-      },
-      "Interesado con Reservas": { 
-        color: "rgba(244, 67, 54, 0.9)", // Rojo más intenso
-        backgroundColor: "rgba(244, 67, 54, 0.3)",
-        fontWeight: "normal" 
-      },
-      "Seguimiento": { 
-        color: "rgba(33, 150, 243, 0.9)", // Azul más intenso
-        backgroundColor: "rgba(33, 150, 243, 0.3)",
-        fontWeight: "normal" 
-      },
-      "Promesa de pago": { 
-        color: "rgba(255, 152, 0, 0.9)", // Naranja más intenso
-        backgroundColor: "rgba(255, 152, 0, 0.3)",
-        fontWeight: "normal" 
-      },
-      "Cita Agendada": { 
-        color: "rgba(156, 39, 176, 0.9)", // Morado más intenso
-        backgroundColor: "rgba(156, 39, 176, 0.3)",
-        fontWeight: "normal" 
-      },
-    };
-  
-    return styles[estado] || { 
-      color: "rgba(224, 224, 224, 0.9)", // Gris más intenso
-      backgroundColor: "rgba(224, 224, 224, 0.3)", 
+  const styles = {
+    "Interesado": { 
+      color: "rgba(255, 152, 0, 0.9)", // Naranja intenso
+      backgroundColor: "rgba(255, 235, 59, 0.3)", // Amarillo claro
       fontWeight: "normal" 
-    };
+    },
+    "En seguimiento": { 
+      color: "rgba(33, 150, 243, 0.9)", // Azul intenso
+      backgroundColor: "rgba(33, 150, 243, 0.3)", // Azul claro
+      fontWeight: "normal" 
+    },
+    "No interesado": { 
+      color: "rgba(244, 67, 54, 0.9)", // Rojo intenso
+      backgroundColor: "rgba(244, 67, 54, 0.3)", // Rojo claro
+      fontWeight: "normal" 
+    },
+    "Promesa de Pago": { 
+      color: "rgba(255, 152, 0, 0.9)", // Naranja intenso
+      backgroundColor: "rgba(255, 152, 0, 0.3)", // Naranja claro
+      fontWeight: "normal" 
+    },
+    "Finalizado": { 
+      color: "rgba(76, 175, 80, 0.9)", // Verde intenso
+      backgroundColor: "rgba(76, 175, 80, 0.3)", // Verde claro
+      fontWeight: "normal" 
+    },
   };
+
+  return styles[estado] || { 
+    color: "rgba(224, 224, 224, 0.9)", // Gris intenso
+    backgroundColor: "rgba(224, 224, 224, 0.3)", // Gris claro
+    fontWeight: "normal" 
+  };
+};
+
   
   
 
@@ -67,6 +63,23 @@ export const columnsClientes = [
       />
     ),
   },
+  {
+    field: "motivo",
+    headerName: "Motivo",
+    flex: 1,
+    minWidth: 100,
+    renderCell: (params) => (
+      <Chip
+        label={params.value}
+        sx={{
+          
+          color: "black",
+          fontWeight: "bold",
+        }}
+      />
+    ),
+},
+
 
   /*{
     field: "score",
@@ -83,8 +96,8 @@ export const columnsClientes = [
         }}
       />
     ),
-  },
-
+  },*/
+  /*
   {
     field: "bound",
     headerName: "Bound",
