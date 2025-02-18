@@ -40,7 +40,42 @@ const getEstadoStyle = (estado) => {
   };
 };
 
-  
+const getMotivoStyle = (motivo) => {
+  const styles = {
+    "Mala información": { 
+      color: "rgba(255, 152, 0, 0.9)", // Naranja intenso
+      backgroundColor: "rgba(255, 235, 59, 0.3)", // Amarillo claro
+      fontWeight: "normal" 
+    },
+    "Administrativo": { 
+      color: "rgba(33, 150, 243, 0.9)", // Azul intenso
+      backgroundColor: "rgba(33, 150, 243, 0.3)", // Azul claro
+      fontWeight: "normal" 
+    },
+    "Olvido de pago": { 
+      color: "rgba(244, 67, 54, 0.9)", // Rojo intenso
+      backgroundColor: "rgba(244, 67, 54, 0.3)", // Rojo claro
+      fontWeight: "normal" 
+    },
+    "Desconocido": { 
+      color: "rgba(255, 152, 0, 0.9)", // Naranja intenso
+      backgroundColor: "rgba(255, 152, 0, 0.3)", // Naranja claro
+      fontWeight: "normal" 
+    },
+    "Económico": { 
+      color: "rgba(76, 175, 80, 0.9)", // Verde intenso
+      backgroundColor: "rgba(76, 175, 80, 0.3)", // Verde claro
+      fontWeight: "normal" 
+    },
+  };
+
+  return styles[motivo] || { 
+    color: "rgba(224, 224, 224, 0.9)", // Gris intenso
+    backgroundColor: "rgba(224, 224, 224, 0.3)", // Gris claro
+    fontWeight: "normal" 
+  };
+};
+
   
 
 export const columnsClientes = [
@@ -72,8 +107,8 @@ export const columnsClientes = [
       <Chip
         label={params.value}
         sx={{
-          
-          color: "black",
+          color: getMotivoStyle(params.value).color,
+          backgroundColor: getMotivoStyle(params.value).backgroundColor,
           fontWeight: "bold",
         }}
       />

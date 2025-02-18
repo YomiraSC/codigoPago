@@ -58,18 +58,18 @@ export default function Layout({ children }) {
         display: "flex",
         flexDirection: "column",
         height: "100%",
-        bgcolor: "#1A202C",
+        bgcolor: "#254e59",
         color: "#fff",
       }}
     >
       <Toolbar>
         <Avatar
-          src="https://trasplantecapilar.pe/wp-content/uploads/2024/09/logo-ifc.jpg"
+          src=" "
           alt="Usuario"
           sx={{ width: 60, height: 60, mx: "auto" }}
         />
       </Toolbar>
-      <Divider sx={{ bgcolor: "#2D3748" }} />
+      <Divider sx={{ bgcolor: "#254e59" }} />
       <List>
         {isAdmin && (
           <ListItem
@@ -216,7 +216,7 @@ export default function Layout({ children }) {
         position="fixed"
         sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
-          bgcolor: "#2C5282",
+          bgcolor: "#007391",
         }}
       >
         <Toolbar>
