@@ -1,13 +1,17 @@
-"use client";
 import { useState, useEffect } from "react";
-import { fetchClientes } from "../../services/clientesService";
+import { fetchClientes, fetchConversacion } from "../../services/clientesService";
 
 export function useClientes() {
   const [clientes, setClientes] = useState([]);
   const [totalClientes, setTotalClientes] = useState(0);
   const [loading, setLoading] = useState(false);
   const [openModal, setOpenModal] = useState(false);
+  const [openConversationModal, setOpenConversationModal] = useState(false);
   const [cliente, setCliente] = useState(null);
+  const [conversationData, setConversationData] = useState(null);
+  const [conversationLoading, setConversationLoading] = useState(false);
+  const [selectedConversation, setSelectedConversation] = useState(0);
+  
   const [filters, setFilters] = useState({
     search: "",
     estado: "Todos",
@@ -17,7 +21,7 @@ export function useClientes() {
   });
 
   const [pagination, setPagination] = useState({ page: 1, pageSize: 10 });
-  const [sortModel, setSortModel] = useState([]);  // 🔹 Maneja el ordenamiento del DataGrid
+  const [sortModel, setSortModel] = useState([]);  
 
   useEffect(() => {
     const loadClientes = async () => {
@@ -28,22 +32,43 @@ export function useClientes() {
       setLoading(false);
     };
     loadClientes();
-  }, [filters, pagination, sortModel]);  // 🔹 Reactualiza datos cuando cambian filtros, paginación o sortModel
+  }, [filters, pagination, sortModel]);  
 
-  const guardarAccionComercial = async (clienteActualizado) => {
+  // 🔹 Función para manejar el modal de acción comercial
+  const handleAccionComercial = (cliente) => {
+    setCliente(cliente);
+    setOpenModal(true);
+  };
+
+  // 🔹 Función para manejar el cierre del modal
+  const handleClose = () => {
+    setOpenModal(false);
+    setCliente(null);
+  };
+
+  // 🔹 Función para obtener la conversación del cliente
+  const handleVerConversacion = async (clienteId) => {
+    setConversationLoading(true);
+    setOpenConversationModal(true);
+
     try {
-      setLoading(true);
-      await updateCliente(clienteActualizado); // Llamar a la API para actualizar el cliente
-      setClientes((prevClientes) =>
-        prevClientes.map((c) => (c.id === clienteActualizado.id ? clienteActualizado : c))
-      );
-      setOpenModal(false);
+      const data = await fetchConversacion(clienteId);
+      setConversationData(data);
     } catch (error) {
-      console.error("Error al actualizar cliente:", error);
+      console.error("Error al obtener la conversación:", error);
+      setConversationData(null);
     } finally {
-      setLoading(false);
+      setConversationLoading(false);
     }
-  }; 
+  };
+
+  // 🔹 Función para cerrar el modal de conversación
+  const handleCloseConversation = () => {
+    setOpenConversationModal(false);
+    setConversationData(null);
+    setSelectedConversation(0);
+  };
+
   return {
     clientes,
     totalClientes,
@@ -55,17 +80,15 @@ export function useClientes() {
     sortModel, 
     setSortModel, 
     openModal,
+    openConversationModal,
     cliente, 
-    handleAccionComercial: (cliente) => {
-      console.log("🔹 Abriendo modal con cliente:", cliente);
-
-      setCliente(cliente);
-      setOpenModal(true);
-    },
-    handleClose: () => {
-      setOpenModal(false);
-      setCliente(null);
-    },
-    guardarAccionComercial,
+    conversationData,
+    conversationLoading,
+    selectedConversation,
+    setSelectedConversation,
+    handleAccionComercial,
+    handleVerConversacion,
+    handleClose,
+    handleCloseConversation
   };
 }

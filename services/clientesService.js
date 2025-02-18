@@ -31,3 +31,13 @@ export const fetchClienteById = async (id) => {
       return null;
     }
   };
+
+  export const fetchConversacion = async (clienteId) => {
+    try {
+      const response = await axiosInstance.get(`/api/conversacion/${clienteId}`);
+      return response.data.conversaciones;  // Devuelve solo el array de conversaciones
+    } catch (error) {
+      console.error("Error al obtener conversación:", error);
+      return [];
+    }
+  };
