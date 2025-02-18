@@ -5,9 +5,10 @@ import CustomDataGrid from "../components/CustomDataGrid";
 import { columnsClientes } from "@/constants/columnsClientes";
 import { Typography } from "@mui/material";
 import Container from "@mui/material";
+import ActionComercialModal from "../components/ActionComercialModal";
 
 export default function ClientesPage() {
-  const { clientes, totalClientes, loading, filters, setFilters, pagination, setPagination, sortModel, setSortModel } = useClientes();
+  const { clientes, totalClientes, loading, filters, setFilters, pagination, setPagination, sortModel, setSortModel, openModal, cliente, handleAccionComercial, handleClose, guardarAccionComercial } = useClientes();
 
   return (
 
@@ -18,8 +19,13 @@ export default function ClientesPage() {
         Clientes
       </Typography>
       <ClientesFilters filters={filters} setFilters={setFilters} />
-      {loading ? <p>Cargando...</p> : <CustomDataGrid rows={clientes} columns={columnsClientes} totalRows={totalClientes} pagination={pagination} setPagination={setPagination} sortModel={sortModel} setSortModel={setSortModel} />}
-
+      {loading ? <p>Cargando...</p> : <CustomDataGrid rows={clientes} columns={columnsClientes(handleAccionComercial)} totalRows={totalClientes} pagination={pagination} setPagination={setPagination} sortModel={sortModel} setSortModel={setSortModel} />}
+      <ActionComercialModal
+        open={openModal}
+        onClose={handleClose}
+        cliente={cliente}
+        onSave={guardarAccionComercial}
+      />
     </main >
 
   );

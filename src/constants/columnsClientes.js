@@ -78,7 +78,7 @@ const getMotivoStyle = (motivo) => {
 
   
 
-export const columnsClientes = [
+export const columnsClientes = (edit)=> [
   { field: "nombre", headerName: "Nombre", flex: 1, minWidth: 150 },
   { field: "telefono", headerName: "Teléfono", flex: 1, minWidth: 120 },
 
@@ -157,7 +157,7 @@ export const columnsClientes = [
       return (
         <ActionButton
           options={[
-            { label: "Acción Comercial", action: () => console.log("Acción Comercial") },
+            { label: "Acción Comercial", action: () => edit(params.row) },
             { label: "Ver Conversación", action: () => console.log("Ver Conversación") },
             { label: "Ver Detalle", action: () => router.push(`/clientes/${params.row.id}`) },
           ]}
