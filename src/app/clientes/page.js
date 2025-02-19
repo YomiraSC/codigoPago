@@ -11,6 +11,7 @@ export default function ClientesPage() {
   const {
     clientes,
     totalClientes,
+    gestores,
     loading,
     filters,
     setFilters,
@@ -56,7 +57,7 @@ export default function ClientesPage() {
       )}
 
       {/* 🔹 Modal de Acción Comercial */}
-      <ActionComercialModal open={openModal} onClose={handleClose} cliente={cliente} />
+      <ActionComercialModal open={openModal} onClose={handleClose} cliente={cliente} gestores={gestores} />
 
       {/* 🔹 Modal de Conversación */}
       <ConversationModal

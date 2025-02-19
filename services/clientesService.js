@@ -41,3 +41,12 @@ export const fetchClienteById = async (id) => {
       return [];
     }
   };
+  export const getGestores = async () => {
+    try {
+      const response = await axiosInstance.get("/gestores");
+      return response.data;
+    } catch (error) {
+      console.error("Error al obtener gestores:", error);
+      return [];
+    }
+  };

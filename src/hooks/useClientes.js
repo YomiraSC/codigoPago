@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchClientes, fetchConversacion } from "../../services/clientesService";
+import { fetchClientes, fetchConversacion, getGestores } from "../../services/clientesService";
 
 export function useClientes() {
   const [clientes, setClientes] = useState([]);
@@ -11,7 +11,7 @@ export function useClientes() {
   const [conversationData, setConversationData] = useState(null);
   const [conversationLoading, setConversationLoading] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState(0);
-  
+  const [gestores,setGestores] = useState([]);
   const [filters, setFilters] = useState({
     search: "",
     estado: "Todos",
@@ -31,6 +31,12 @@ export function useClientes() {
       setTotalClientes(data.total);
       setLoading(false);
     };
+    const loadGestores = async () => {
+      const gestoresData = await getGestores();
+      setGestores(gestoresData);
+      console.log("gestores", gestoresData);
+    };
+    loadGestores();
     loadClientes();
   }, [filters, pagination, sortModel]);  
 
@@ -72,6 +78,7 @@ export function useClientes() {
   return {
     clientes,
     totalClientes,
+    gestores,
     loading, 
     filters,
     setFilters,
