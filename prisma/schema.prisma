@@ -118,6 +118,8 @@ model codigo_pago {
   fecha_vencimiento DateTime? @db.Date
   activo            Boolean?  @default(true)
   pago_realizado    Boolean?  @default(false)
+  fecha_pago        DateTime? @db.Date
+  numero_cuota      Int?
   cliente           cliente?  @relation(fields: [cliente_id], references: [cliente_id], onDelete: Cascade, onUpdate: NoAction, map: "codigo_pago_ibfk_1")
 
   @@index([cliente_id], map: "cliente_id")
