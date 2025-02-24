@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { autenticarUsuario } from "../../../../../services/authService";
 
 export const authOptions = {
   providers: [
@@ -11,73 +12,60 @@ export const authOptions = {
       },
       async authorize(credentials) {
         try {
-          const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+          const user = await autenticarUsuario(credentials);
 
-          const res = await fetch(`${API_URL}/login`, {
-            method: "POST",
-            body: JSON.stringify(credentials),
-            headers: { "Content-Type": "application/json" },
-          });
-
-          const user = await res.json();
-          console.log("Usuario devuelto por Flask:", user);
-
-          if (!res.ok || !user.token) {
-            throw new Error(user.message || "Credenciales incorrectas");
+          if (!user || !user.token) {
+            throw new Error("Credenciales incorrectas.");
           }
 
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role, // 🔹 Se obtiene el rol del backend
-            token: user.token,
-            expiresAt: Date.now() + user.expiresIn * 1000, // 🔹 Calculamos la expiración
-          };
+          return user; // 🔹 Devuelve el usuario con el token generado
         } catch (error) {
-          console.error("Error en la autenticación:", error);
-          throw new Error("Error en la autenticación");
+          console.error("❌ Error en autorización:", error);
+          throw new Error(error.message || "Error en la autenticación.");
         }
       },
     }),
   ],
   pages: {
-    signIn: "/login", // 🔹 Redirige a esta página cuando el usuario no está autenticado
+    signIn: "/login", // 🔹 Página de inicio de sesión personalizada
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.id = user.id;
+        token.username = user.name;
         token.role = user.role;
         token.token = user.token;
-        token.expiresAt = user.expiresAt; // 🔹 Guardamos la expiración del token
+        token.expiresAt = user.expiresAt;
       }
 
-      // 🔹 Si el token ha expirado, cerrar sesión forzosamente
+      // 🔹 Si el token ha expirado, invalidar sesión
       if (Date.now() > token.expiresAt) {
-        console.log("🔄 Token expirado. Forzando cierre de sesión.");
-        return null; // 🔹 Devolver `null` para invalidar la sesión
+        console.log("🔄 Token expirado. Cerrando sesión automáticamente.");
+        return null;
       }
 
-      console.log("Token en JWT:", token);
       return token;
     },
     async session({ session, token }) {
       if (!token) {
-        console.log("❌ Token expirado o inválido. Cerrando sesión.");
-        return null; // 🔹 Invalidar sesión
+        console.log("❌ Token expirado. Sesión inválida.");
+        return null;
       }
 
+      session.user.id = token.id;
+      session.user.username = token.username;
       session.user.role = token.role;
       session.user.token = token.token;
 
-      console.log("Sesión en NextAuth:", session);
       return session;
     },
   },
   session: {
-    strategy: "jwt", // 🔹 Usamos JWT en lugar de base de datos para manejar sesiones
+    strategy: "jwt",
+    maxAge: 3600, // ⏳ Expira en 1 hora
   },
-  secret: process.env.NEXTAUTH_SECRET, // 🔹 Clave secreta para cifrar sesiones
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);

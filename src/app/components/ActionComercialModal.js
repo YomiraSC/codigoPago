@@ -35,9 +35,10 @@ const ActionComercialModal = ({ open, onClose, cliente, gestores, onSave }) => {
     useEffect(() => {
         if (cliente) {
             setClienteData({
+                id: cliente.id || "",
                 nombre: cliente.nombre || "",
                 email: cliente.email || "",
-                telefono: cliente.telefono || "",
+                telefono: cliente.celular || "",
                 gestor: cliente.gestor || "",
                 observaciones: cliente.observaciones || "",
                 accion: cliente.accion || "",
@@ -108,8 +109,8 @@ const ActionComercialModal = ({ open, onClose, cliente, gestores, onSave }) => {
                     <Select name="gestor" value={clienteData.gestor} onChange={handleChange}>
                         <MenuItem value="">Sin gestor asignado</MenuItem>
                         {gestores.map((gestor) => (
-                            <MenuItem key={gestor.id} value={gestor.nombre}>
-                                {gestor.nombre}
+                            <MenuItem key={gestor.id} value={gestor.nombre_completo}>
+                                {gestor.nombre_completo}
                             </MenuItem>
                         ))}
                     </Select>

@@ -126,8 +126,8 @@ export default function ClientesFilters({ filters, setFilters }) {
             setFilters({
               search: "",
               estado: "Todos",
-              fechaInicio: startOfDay(new Date()).toISOString(),
-              fechaFin: endOfDay(new Date()).toISOString(),
+              fechaInicio: "",
+              fechaFin: "",
             });
           }}
         >

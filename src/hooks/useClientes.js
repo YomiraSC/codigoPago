@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchClientes, fetchConversacion, getGestores } from "../../services/clientesService";
+import { fetchClientes, fetchConversacion, getGestores ,updateCliente } from "../../services/clientesService";
 
 export function useClientes() {
   const [clientes, setClientes] = useState([]);
@@ -75,6 +75,23 @@ export function useClientes() {
     setSelectedConversation(0);
   };
 
+  const handleSaveCliente = async (clienteData) => {
+    setLoading(true);
+    try {
+      await updateCliente(clienteData);
+
+      // 🔄 Actualizar la lista en el frontend
+      setClientes((prevClientes) =>
+        prevClientes.map((c) => (c.id === clienteData.id ? { ...c, ...clienteData } : c))
+      );
+    } catch (error) {
+      console.error("❌ Error al actualizar cliente:", error);
+    } finally {
+      setLoading(false);
+      setOpenModal(false);
+    }
+  };
+
   return {
     clientes,
     totalClientes,
@@ -96,6 +113,7 @@ export function useClientes() {
     handleAccionComercial,
     handleVerConversacion,
     handleClose,
-    handleCloseConversation
+    handleCloseConversation,
+    handleSaveCliente
   };
 }

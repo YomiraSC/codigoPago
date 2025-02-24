@@ -4,15 +4,28 @@ import { getToken } from "next-auth/jwt";
 export async function middleware(req) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
-  // Rutas protegidas
-  const protectedRoutes = ["/dashboard", "/settings"]; // Agrega aquí todas las rutas protegidas
+  // 🔹 Definir rutas protegidas
+  const protectedRoutes = ["/dashboard", "/settings"];
 
-  // Si no hay token y el usuario intenta acceder a una ruta protegida, redirige al login
+  // 🔹 Redirigir al login si no hay token y la ruta es protegida
   if (!token && protectedRoutes.some((path) => req.nextUrl.pathname.startsWith(path))) {
     const loginUrl = new URL("/login", req.url);
     return NextResponse.redirect(loginUrl);
   }
 
-  // Deja pasar el resto de las solicitudes
-  return NextResponse.next();
+  const res = NextResponse.next();
+
+  // 🔥 Habilitar CORS solo en las API (/api/*)
+  if (req.nextUrl.pathname.startsWith("/api")) {
+    res.headers.set("Access-Control-Allow-Origin", "*");
+    res.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  }
+
+  return res;
 }
+
+// 🔹 Aplica el middleware solo en rutas de API y protegidas
+export const config = {
+  matcher: ["/api/:path*", "/dashboard", "/settings"], // Agrega más rutas si es necesario
+};

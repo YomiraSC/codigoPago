@@ -30,6 +30,7 @@ export default function ClientesPage() {
     handleClose,
     handleVerConversacion,
     handleCloseConversation,
+    handleSaveCliente,
   } = useClientes();
 
   return (
@@ -57,7 +58,7 @@ export default function ClientesPage() {
       )}
 
       {/* 🔹 Modal de Acción Comercial */}
-      <ActionComercialModal open={openModal} onClose={handleClose} cliente={cliente} gestores={gestores} />
+      <ActionComercialModal open={openModal} onClose={handleClose} cliente={cliente} gestores={gestores} onSave={handleSaveCliente} />
 
       {/* 🔹 Modal de Conversación */}
       <ConversationModal

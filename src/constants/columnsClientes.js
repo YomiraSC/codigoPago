@@ -80,7 +80,7 @@ const getMotivoStyle = (motivo) => {
 
 export const columnsClientes = (edit, conversacion)=> [
   { field: "nombre", headerName: "Nombre", flex: 1, minWidth: 150 },
-  { field: "telefono", headerName: "Teléfono", flex: 1, minWidth: 120 },
+  { field: "celular", headerName: "Teléfono", flex: 1, minWidth: 120 },
 
   {
     field: "estado",
