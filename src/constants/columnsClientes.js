@@ -79,26 +79,30 @@ const getMotivoStyle = (motivo) => {
   
 
 export const columnsClientes = (edit, conversacion)=> [
+  { field: "documento_identidad", headerName: "DNI", flex: 1, minWidth: 120 },
   { field: "nombre", headerName: "Nombre", flex: 1, minWidth: 150 },
   { field: "celular", headerName: "Teléfono", flex: 1, minWidth: 120 },
-
-  {
-    field: "estado",
-    headerName: "Estado",
-    flex: 1,
-    minWidth: 120,
-    renderCell: (params) => (
-      <Chip
-        label={params.value}
-        sx={{
-          color: getEstadoStyle(params.value).color,
-          backgroundColor: getEstadoStyle(params.value).backgroundColor,
-          fontWeight: "bold",
-        }}
-      />
-    ),
-  },
-  {
+  { field: "tipo_codigo", headerName: "Tipo de Código", flex: 1, minWidth: 120, sortable: true },
+  { field: "codigo_pago", headerName: "Código", flex: 1, minWidth: 120, sortable:true },
+  { field: "activo", headerName: "Estado del código", flex: 1, minWidth: 120, sortable: true },
+  { field: "fecha_asignacion", headerName: "Fecha de entrega", flex: 1, minWidth: 120, sortable: true},
+  // {
+  //   field: "estado",
+  //   headerName: "Estado",
+  //   flex: 1,
+  //   minWidth: 120,
+  //   renderCell: (params) => (
+  //     <Chip
+  //       label={params.value}
+  //       sx={{
+  //         color: getEstadoStyle(params.value).color,
+  //         backgroundColor: getEstadoStyle(params.value).backgroundColor,
+  //         fontWeight: "bold",
+  //       }}
+  //     />
+  //   ),
+  // },
+  /*{
     field: "motivo",
     headerName: "Motivo",
     flex: 1,
@@ -113,7 +117,7 @@ export const columnsClientes = (edit, conversacion)=> [
         }}
       />
     ),
-},
+},*/
 
 
   /*{
@@ -145,7 +149,7 @@ export const columnsClientes = (edit, conversacion)=> [
     ),
   },*/
 
-  { field: "gestor", headerName: "Gestor", flex: 1, minWidth: 150 },
+  //{ field: "gestor", headerName: "Gestor", flex: 1, minWidth: 150 },
 
   {
     field: "acciones",
