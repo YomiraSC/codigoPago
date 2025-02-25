@@ -89,7 +89,7 @@ export async function GET(req) {
         ...cliente,
         tipo_codigo: codigoPago.tipo_codigo || null,
         codigo_pago: codigoPago.codigo || null,
-        activo: codigoPago.activo ? "Activo" : "Inactivo", 
+        activo: codigoPago.activo ? "Activo" : "Vencido", 
         fecha_asignacion: new Date(codigoPago.fecha_asignacion).toISOString().split('T')[0],
       };
     });
