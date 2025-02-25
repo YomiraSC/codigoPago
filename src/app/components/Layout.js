@@ -234,7 +234,7 @@ export default function Layout({ children }) {
             component="div"
             sx={{ flexGrow: 1, fontWeight: "bold" }}
           >
-            CRM  DE REACTIVACIONES
+            CRM CÓDIGO DE PAGOS
           </Typography>
           <IconButton color="inherit" sx={{ mr: 2 }}>
             <NotificationsIcon />
