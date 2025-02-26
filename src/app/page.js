@@ -13,7 +13,7 @@ export default async function Home() {
 
       {session ? (
         <div className="text-center">
-          <p className="mb-4">
+          <p className="mb-4 text-black">
             Estás logueado como <span className="font-semibold">{session.user.name || session.user.email}</span>.
           </p>
           <Link 

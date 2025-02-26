@@ -115,7 +115,7 @@ export default function Layout({ children }) {
           </ListItemIcon>
           <ListItemText primary="Clientes" />
         </ListItem>
-        <ListItem
+        {/* <ListItem
           button="true"
           onClick={() => router.push("/dashboard")}
           sx={{
@@ -128,7 +128,7 @@ export default function Layout({ children }) {
             <DashboardIcon />
           </ListItemIcon>
           <ListItemText primary="Dashboard" />
-        </ListItem>
+        </ListItem> */}
         {/*
         <ListItem
           button="true"
@@ -160,7 +160,7 @@ export default function Layout({ children }) {
           </ListItemIcon>
           <ListItemText primary="Gestores" />
         </ListItem>*/}
-        <ListItem
+        {/* <ListItem
           button="true"
           onClick={() => router.push("/promesasPago")}
           sx={{
@@ -187,7 +187,7 @@ export default function Layout({ children }) {
             <CampaignIcon />
           </ListItemIcon>
           <ListItemText primary="Campañas" />
-        </ListItem>
+        </ListItem> */}
       </List>
       <Divider sx={{ bgcolor: "#2D3748" }} />
       <List>
