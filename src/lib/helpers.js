@@ -17,9 +17,9 @@ export async function obtenerPersonaIdPorNombre(nombreGestor) {
     // 🔍 Búsqueda en la BD con Prisma
     const persona = await prisma.persona.findFirst({
       where: {
-        nombre: { contains: nombre, mode: "insensitive" },
-        primer_apellido: { contains: primerApellido, mode: "insensitive" },
-        segundo_apellido: { contains: segundoApellido, mode: "insensitive" },
+        nombre: { contains: nombre},
+        primer_apellido: { contains: primerApellido},
+        segundo_apellido: { contains: segundoApellido},
       },
       select: { persona_id: true },
     });

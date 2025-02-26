@@ -80,7 +80,11 @@ const getMotivoStyle = (motivo) => {
 
 export const columnsClientes = (edit, conversacion)=> [
   { field: "documento_identidad", headerName: "DNI", flex: 1, minWidth: 120 },
-  { field: "nombre", headerName: "Nombre", flex: 1, minWidth: 150 },
+  //{ field: "nombre", headerName: "Nombre", flex: 1, minWidth: 150 },
+  { field: "nombreCompleto", headerName: "Nombre", flex: 1, minWidth: 150 },
+
+  
+  
   { field: "celular", headerName: "Teléfono", flex: 1, minWidth: 120 },
   { field: "tipo_codigo", headerName: "Tipo de Código", flex: 1, minWidth: 120},
   { field: "codigo_pago", headerName: "Código", flex: 1, minWidth: 120},
@@ -153,19 +157,20 @@ export const columnsClientes = (edit, conversacion)=> [
 
   {
     field: "acciones",
-    headerName: "Acciones",
+    headerName: "Conversaciones",
     flex: 1,
     renderCell: (params) => {
       const router = useRouter();
 
       return (
-        <ActionButton
-          options={[
-            { label: "Acción Comercial", action: () => edit(params.row) },
-            { label: "Ver Conversación", action: () => conversacion(params.row.id) },
-            { label: "Ver Detalle", action: () => router.push(`/clientes/${params.row.id}`) },
-          ]}
-        />
+        <Button
+            variant="contained"
+            onClick={() => {
+              conversacion(params.row.id)
+            }}
+        >
+          Ver 
+        </Button>
       );
     },
   },

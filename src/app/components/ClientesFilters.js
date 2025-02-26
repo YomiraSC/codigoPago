@@ -7,7 +7,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { es } from "date-fns/locale";  // 📌 Asegura el idioma correcto para español
 import { startOfDay, endOfDay, subDays } from "date-fns";
-
+import { Typography } from "@mui/material";
 const presets = [
   { label: "Hoy", value: "today" },
   { label: "Últimos 7 días", value: "7" },
@@ -17,7 +17,7 @@ const presets = [
 ];
 
 export default function ClientesFilters({ filters, setFilters }) {
-  const [preset, setPreset] = useState("today");
+  const [preset, setPreset] = useState("");
   const [startDate, setStartDate] = useState(startOfDay(new Date()));
   const [endDate, setEndDate] = useState(endOfDay(new Date()));
 
@@ -51,6 +51,7 @@ export default function ClientesFilters({ filters, setFilters }) {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+      {/* Primera Sección */}
       <div className="flex flex-wrap gap-4 mb-4">
         <TextField
           label="Buscar..."
@@ -61,21 +62,35 @@ export default function ClientesFilters({ filters, setFilters }) {
 
         <TextField
           select
-          label="Estado"
+          label="Tipo de código"
           size="small"
-          value={filters.estado}
-          onChange={(e) => setFilters({ ...filters, estado: e.target.value })}
+          value={filters.tipoCod}
+          onChange={(e) => setFilters({ ...filters, tipoCod: e.target.value })}
+          sx={{ width: 150 }}
         >
-          <MenuItem value="Todos">Todos</MenuItem>
-          <MenuItem value="Interesado">Interesado</MenuItem>
-          <MenuItem value="Promesa de Pago">Promesa de Pago</MenuItem>
-          <MenuItem value="No interesado">No interesado</MenuItem>
-          <MenuItem value="Finalizado">Finalizado</MenuItem>
-          <MenuItem value="En seguimiento">En seguimiento</MenuItem>
+          <MenuItem value="recaudacion">Recaudación</MenuItem>
+          <MenuItem value="extranet">Extranet</MenuItem>
+          <MenuItem value="especial">Especial</MenuItem>
         </TextField>
 
-        {/* 📌 Filtro de Rango de Fechas */}
-        <FormControl size="small">
+        <TextField
+          select
+          label="Estado del código"
+          size="small"
+          value={filters.activo}
+          onChange={(e) => setFilters({ ...filters, activo: e.target.value })}
+          sx={{ width: 150 }}
+        >
+          <MenuItem value="Activo">Activo</MenuItem>
+          <MenuItem value="Vencido">Vencido</MenuItem>
+        </TextField>
+      </div>
+      <Typography variant="h4" gutterBottom sx={{ color: "#1A202C" }}>
+        Fecha
+      </Typography>
+      {/* Segunda Sección */}
+      <div className="flex flex-wrap gap-4 items-center">
+        <FormControl size="small" sx={{ width: 200 }}>
           <InputLabel>Rango de Fechas</InputLabel>
           <Select value={preset} onChange={handlePresetChange}>
             {presets.map((preset) => (
@@ -86,7 +101,6 @@ export default function ClientesFilters({ filters, setFilters }) {
           </Select>
         </FormControl>
 
-        {/* 📅 Mostrar DatePicker solo si es "Personalizado" */}
         {preset === "custom" && (
           <>
             <DatePicker
@@ -116,16 +130,16 @@ export default function ClientesFilters({ filters, setFilters }) {
           </>
         )}
 
-        {/* 🔄 Botón de Reset */}
         <Button
           variant="contained"
           onClick={() => {
-            setPreset("today");
+            setPreset("");
             setStartDate(startOfDay(new Date()));
             setEndDate(endOfDay(new Date()));
             setFilters({
               search: "",
-              estado: "Todos",
+              activo: "Todos",
+              tipoCod: "Todos",
               fechaInicio: "",
               fechaFin: "",
             });

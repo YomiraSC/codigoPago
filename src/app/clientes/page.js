@@ -36,7 +36,7 @@ export default function ClientesPage() {
   return (
     <main className="p-4 max-w-6xl mx-auto">
       <Typography variant="h4" gutterBottom sx={{ color: "#1A202C" }}>
-        Clientes
+        Filtros
       </Typography>
       
       {/* 🔹 Filtros de búsqueda */}

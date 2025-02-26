@@ -14,7 +14,8 @@ export function useClientes() {
   const [gestores,setGestores] = useState([]);
   const [filters, setFilters] = useState({
     search: "",
-    estado: "Todos",
+    activo: "Todos",
+    tipoCod: "Todos",
     bound: "Todos",
     fechaInicio: "",
     fechaFin: "",

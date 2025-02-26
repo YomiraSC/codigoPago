@@ -3,7 +3,9 @@ import { DataGrid } from "@mui/x-data-grid";
 
 export default function CustomDataGrid({ rows, columns, totalRows, pagination, setPagination, sortModel, setSortModel }) {
   return (
-    <div className="bg-white p-4 rounded-md shadow-md">
+    
+
+    <div className="bg-white p-4 rounded-md shadow-md mt-6">
       <DataGrid
         rows={rows}
         columns={columns}

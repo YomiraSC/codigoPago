@@ -9,12 +9,13 @@ export async function GET(req) {
     const orderBy = searchParams.get("orderBy") || "fecha_creacion";
     const order = searchParams.get("order") || "asc";
     const search = searchParams.get("search") || "";
-    const estado = searchParams.get("estado");
+    const activo = searchParams.get("activo");
+    const tipoCod = searchParams.get("tipoCod");
     const bound = searchParams.get("bound");
     let fechaInicio = searchParams.get("fechaInicio");
     let fechaFin = searchParams.get("fechaFin");
 
-    console.log("🔎 Parámetros recibidos:", { page, pageSize, search, estado, bound, fechaInicio, fechaFin, orderBy, order });
+    console.log("🔎 Parámetros recibidos:", { page, pageSize, search, activo, tipoCod, bound, fechaInicio, fechaFin, orderBy, order });
 
     // 🛠️ Validar fechas (evitar null)
     fechaInicio = fechaInicio && fechaInicio !== "null" ? new Date(fechaInicio) : undefined;
@@ -26,26 +27,80 @@ export async function GET(req) {
     let filtros = {};
 
     if (search) {
-      filtros.OR = [
+      /* filtros.OR = [
         { nombre: { contains: search, mode: "insensitive" } },
-        { email: { contains: search, mode: "insensitive" } },
+        { documento_identidad: { contains: search, mode: "insensitive" } },
+      ]; */
+      const searchLower = search.toLowerCase();
+  
+      filtros.OR = [
+        { nombre: { contains: searchLower } },
+        { apellido: {contains: searchLower}},
+        { documento_identidad: { contains: searchLower } },
       ];
     }
 
-    if (estado && estado !== "Todos") {
-      filtros.estado = estado;
+    /* if (activo && activo !== "Todos") {
+      filtros.codigo_pago = {
+        some: {
+          activo: activo === "Activo" ? true : false// ✅ Se filtra dentro de `codigo_pago`
+        }
+      };
+      
     }
+    if (tipoCod && tipoCod !== "Todos") {
+      filtros.codigo_pago = {
+        some: {
+          tipo_codigo: tipoCod // ✅ Se filtra dentro de `codigo_pago`
+        }
+      };
+      
+    } */
+    /* if ((activo && activo !== "Todos") || (tipoCod && tipoCod !== "Todos")) {
+      filtros.codigo_pago = {
+        some: {
+          ...(activo && activo !== "Todos" && { activo: activo === "Activo" }),
+          ...(tipoCod && tipoCod !== "Todos" && { tipo_codigo: tipoCod }),
+        }
+      };
+    } */
+
+    if ((activo && activo !== "Todos") || (tipoCod && tipoCod !== "Todos") || (fechaInicio && fechaFin)) {
+      filtros.codigo_pago = {
+        some: {
+          ...(activo && activo !== "Todos" && { activo: activo === "Activo" }),
+          ...(tipoCod && tipoCod !== "Todos" && { tipo_codigo: tipoCod }),
+          ...(fechaInicio && fechaFin && {
+            fecha_asignacion: {
+              gte: fechaInicio,
+              lte: fechaFin,
+            },
+          }),
+        },
+      };
+    }
+
 
     if (bound && bound !== "Todos") {
       filtros.bound = bound === "INBOUND";
     }
+    
 
-    if (fechaInicio && fechaFin) {
-      filtros.fecha_creacion = {
-        gte: fechaInicio, // Mayor o igual a la fecha de inicio
-        lte: fechaFin, // Menor o igual a la fecha de fin
+    
+
+
+    /* if (fechaInicio && fechaFin) {
+      if (!filtros.codigo_pago) {
+        filtros.codigo_pago = {};
+      }
+    
+      filtros.codigo_pago.some = {
+        fecha_asignacion: {
+          gte: fechaInicio, // Mayor o igual a la fecha de inicio
+          lte: fechaFin,    // Menor o igual a la fecha de fin
+        }
       };
-    }
+    } */
 
     console.log("📌 Filtros aplicados:", filtros);
 
@@ -59,6 +114,7 @@ export async function GET(req) {
     // });
     const clientes = await prisma.cliente.findMany({
       where: filtros,
+      
       orderBy: { [orderBy]: order },
       take: pageSize,
       skip: (page - 1) * pageSize,
@@ -87,13 +143,15 @@ export async function GET(req) {
       const codigoPago = cliente.codigo_pago.length > 0 ? cliente.codigo_pago[0] : {};  
       return {
         ...cliente,
+        nombreCompleto: `${cliente.nombre} ${cliente.apellido}`, // Concatenar nombre y apellido
         tipo_codigo: codigoPago.tipo_codigo || null,
         codigo_pago: codigoPago.codigo || null,
         activo: codigoPago.activo ? "Activo" : "Vencido", 
         fecha_asignacion: new Date(codigoPago.fecha_asignacion).toISOString().split('T')[0],
       };
     });
-    
+    //console.log("Nombre completo generado:", `${cliente.nombre} ${cliente.apellido}`);
+
     console.log(clientesTransformados);
 
     console.log("✅ Clientes obtenidos:", clientes.length);
