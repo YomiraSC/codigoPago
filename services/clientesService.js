@@ -6,7 +6,8 @@ export const fetchClientes = async ({ page = 1, pageSize = 10, filters = {}, sor
       page,
       pageSize,
       search: filters.search || "",
-      estado: filters.estado !== "Todos" ? filters.estado : undefined,
+      activo: filters.activo !== "Todos" ? filters.activo : undefined,
+      tipoCod: filters.tipoCod !== "Todos" ? filters.tipoCod : undefined,
       bound: filters.bound !== "Todos" ? filters.bound : undefined,
       fechaInicio: filters.fechaInicio || undefined,
       fechaFin: filters.fechaFin || undefined,
@@ -38,7 +39,7 @@ export const fetchClienteById = async (id) => {
 
   export const fetchConversacion = async (clienteId) => {
     try {
-      const response = await axiosInstance.get(`/api/conversacion/${clienteId}`);
+      const response = await axiosInstance.get(`/conversacion/${clienteId}`);
       return response.data.conversaciones;  // Devuelve solo el array de conversaciones
     } catch (error) {
       console.error("Error al obtener conversación:", error);
@@ -65,6 +66,7 @@ export const fetchClienteById = async (id) => {
         gestor: clienteData.gestor,
         observaciones: clienteData.observaciones,
         fechaPromesaPago: clienteData.fechaPromesaPago || null, // Asegurar que se envía null si está vacío
+        celular: clienteData.telefono,
       });
 
       return response.data;
