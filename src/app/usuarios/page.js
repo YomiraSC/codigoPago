@@ -9,7 +9,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import bcrypt from "bcryptjs";
 
 export default function UsuariosPage() {
-  const [usuarios, setUsuarios] = useState([]);
+  const [usuariosModificados, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openModal, setOpenModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -22,9 +22,12 @@ export default function UsuariosPage() {
       try {
         
         const res = await fetch("/api/usuarios");
-        const data = await res.json();
-        setUsuarios(data);
-        
+        // const data = await res.json();
+        // setUsuarios(data);
+        const { usuariosModificados, total } = await res.json(); // ✅ Leer ambos valores
+      
+        setUsuarios(usuariosModificados);
+        setTotalUsuarios(total);
 
       } catch (error) {
         console.error("❌ Error al obtener usuarios:", error);
@@ -167,11 +170,11 @@ export default function UsuariosPage() {
       <div className="bg-white p-4 rounded-md shadow-md mt-6">
         
         <DataGrid
-          rows={usuarios}
+          rows={usuariosModificados}
           columns={columns}
           pagination
           paginationMode="server"
-          rowCount={5}
+          rowCount={totalUsuarios}
           pageSizeOptions={[5, 10, 20, 50]} // 🔹 Opciones de filas por página
           paginationModel={{
             page: pagination.page - 1, // 🔹 DataGrid usa base 0
@@ -180,7 +183,7 @@ export default function UsuariosPage() {
           onPaginationModelChange={({ page, pageSize }) => {
             setPagination((prev) => ({ ...prev, page: page + 1, pageSize })); // 🔹 Reactualiza el estado de paginación
           }}
-          sortingMode="server"
+          sortingMode="client"
           sortModel={sortModel}
           onSortModelChange={setSortModel}
           loading={loading}
