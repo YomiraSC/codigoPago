@@ -1,7 +1,7 @@
 import "./globals.css"; // Importa los estilos globales aquí
 import ClientWrapper from "./components/ClientWrapper";
 export const metadata = {
-  title: "SISTEMA IFC",
+  title: "MAQUI+",
   description: "Descripción de tu aplicación",
   icons:{
     icon: "https://trasplantecapilar.pe/wp-content/uploads/2024/09/logo-ifc.jpg"
