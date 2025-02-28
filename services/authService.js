@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-//import bcrypt from "bcryptjs";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "super_secret_key";
@@ -9,7 +9,7 @@ export const autenticarUsuario = async ({ username, password }) => {
   try {
     console.log("🔍 Iniciando autenticación para usuario:", username);
 
-    // 🔍 Buscar usuario en MySQL con Prisma
+    // 🔍 Buscar usuario en MySQL con Prisma  
     const usuario = await prisma.usuario.findUnique({
       where: { username },
       include: { rol: true }, // 🔹 Incluye el rol del usuario

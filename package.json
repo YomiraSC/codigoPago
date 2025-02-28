@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint"
   },
@@ -24,6 +24,7 @@
     "@prisma/client": "^6.4.1",
     "add": "^2.0.6",
     "axios": "^1.7.9",
+    "bcryptjs": "^3.0.2",
     "date-fns": "2.29.3",
     "dayjs": "^1.11.13",
     "jsonwebtoken": "^9.0.2",
