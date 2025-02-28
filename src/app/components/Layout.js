@@ -51,7 +51,7 @@ export default function Layout({ children }) {
 
   const isAdmin = session?.user?.rol === "admin" || session?.user?.rol === "admin_general";
   console.log("Rol", session?.user?.rol)
-
+  console.log("Rol ID:", session?.user?.rol_id);
   const drawer = (
     <Box
       sx={{
@@ -188,6 +188,8 @@ export default function Layout({ children }) {
           </ListItemIcon>
           <ListItemText primary="Campañas" />
         </ListItem> */}
+        
+        {session?.user?.rol_id === 1 && (
         <ListItem
           button="true"
           onClick={() => router.push("/usuarios")}
@@ -202,6 +204,7 @@ export default function Layout({ children }) {
           </ListItemIcon>
           <ListItemText primary="Usuarios" />
         </ListItem>
+        )}
       </List>
       <Divider sx={{ bgcolor: "#2D3748" }} />
       <List>

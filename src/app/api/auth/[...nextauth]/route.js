@@ -50,6 +50,7 @@ export const authOptions = {
               id: usuario.usuario_id,
               name: usuario.username,
               email: usuario.email,
+              rol_id: usuario.rol_id,
               role: usuario.rol.nombre_rol, // 🔹 Se obtiene el rol del backend
               tokenExpires: Date.now() + 3600 * 1000, // 🔹 Expiración en 1 hora
             };
@@ -68,6 +69,7 @@ export const authOptions = {
       if (user) {
         token.id = user.id;
         token.username = user.name;
+        token.rol_id = user.rol_id;
         token.role = user.role;
         token.token = user.token;
         token.expiresAt = user.expiresAt;
@@ -89,6 +91,7 @@ export const authOptions = {
 
       session.user.id = token.id;
       session.user.username = token.username;
+      session.user.rol_id = token.rol_id;
       session.user.role = token.role;
       session.user.token = token.token;
 
