@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 
 export async function GET() {
   try {
-    //const total = await prisma.usuario.count(); 
+    const total = await prisma.usuario.count(); 
     const usuarios = await prisma.usuario.findMany({
       include: {
         persona: true,
@@ -13,6 +13,7 @@ export async function GET() {
       },
     });
     console.log("📢 Usuarios obtenidos:", usuarios);
+    console.log("cant usuarios: ",total);
     // Modificar el atributo activo antes de enviar la respuesta
     const usuariosModificados = usuarios.map(usuario => ({
       ...usuario,
@@ -20,7 +21,7 @@ export async function GET() {
     }));
 
     //console.log("📢 Usuarios obtenidos de la BD:", usuariosModificados);
-    return NextResponse.json(usuariosModificados);
+    return NextResponse.json({usuariosModificados, total});
   } catch (error) {
     console.error("❌ Error obteniendo usuarios:", error);
     return NextResponse.json({ error: "Error obteniendo usuarios" }, { status: 500 });
