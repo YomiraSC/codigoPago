@@ -70,9 +70,13 @@ export async function POST(req) {
           },
         },
       },
-      include: { persona: true },
+      include: { persona: true, rol: true},
     });
-
+    // Transformar el campo "activo" en "activo" si es 1 o true
+    return NextResponse.json({
+      ...newUsuario,
+      activo: newUsuario.activo ? "Activo" : "Inactivo",
+  });
     console.log("✅ Usuario creado:", newUsuario);
 
     return NextResponse.json(newUsuario, { status: 201 });
@@ -127,7 +131,11 @@ export async function PUT(req, { params }) {
       },
       include: { persona: true },
     });
-
+    // Transformar el campo "activo" en "activo" si es 1 o true
+    return NextResponse.json({
+      ...updatedUsuario,
+      activo: updatedUsuario.activo ? "Activo" : "Inactivo",
+  });
     return NextResponse.json(updatedUsuario);
   } catch (error) {
     console.error("❌ Error actualizando usuario:", error);

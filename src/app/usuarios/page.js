@@ -59,7 +59,11 @@ export default function UsuariosPage() {
           "Content-Type": "application/json",
           "x-user-role": "Usuario",
         },
-        body: JSON.stringify(userData),
+        body: JSON.stringify({
+          ...userData,
+          rol_id: Number(userData.rol_id), // 🔹 Convertimos rol_id antes de enviarlo
+          activo: userData.activo !== undefined ? Number(userData.activo) : 1,
+        }),
       });
   
       const newUser = await res.json(); // Obtener el usuario con el ID generado
@@ -74,6 +78,9 @@ export default function UsuariosPage() {
           ? prev.map((u) => (u.usuario_id === newUser.usuario_id ? newUser : u)) // Actualizar usuario editado
           : [...prev, newUser] // Agregar usuario nuevo con ID asignado
       );
+      if (!editingUser) {
+        setTotalUsuarios((prevTotal) => prevTotal + 1); // 🔹 Aumenta totalUsuarios
+      }
     } catch (error) {
       console.error("❌ Error al guardar usuario:", error);
     }
@@ -94,6 +101,7 @@ export default function UsuariosPage() {
   
       if (res.ok) {
         setUsuarios((prev) => prev.filter((usuario) => usuario.usuario_id !== id));
+        setTotalUsuarios((prevTotal) => prevTotal - 1); // 🔹 Reduce el total de usuarios
       } else {
         const errorData = await res.json();
         console.error("❌ Error al eliminar usuario:", errorData.error);
@@ -206,7 +214,7 @@ function UsuarioModal({ open, onClose, onSave, user, userRole }) {
       username: user?.username || "",
       password: "", // No cargamos la contraseña existente
       rol_id: user?.rol?.rol_id || "",
-      activo: user?.activo || 1,
+      activo: user ? Number(user.activo) : 1,
     });
   
     const handleChange = (e) => {

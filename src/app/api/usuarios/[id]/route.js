@@ -35,8 +35,11 @@ export async function PUT(req,context) {
         data: {
           username,
           password: hashedPassword,
-          rol_id,
-          activo,
+          //rol_id,
+          rol: {
+            connect: { rol_id: parseInt(rol_id) } // 🔹 Forma correcta de actualizar el rol
+          },
+          activo: activo !== undefined ? 1 : 1,
           persona: {
             update: {
               nombre,
@@ -46,9 +49,12 @@ export async function PUT(req,context) {
             },
           },
         },
-        include: { persona: true },
+        include: { persona: true, rol: true },
       });
-  
+      return NextResponse.json({
+        ...updatedUsuario,
+        activo: updatedUsuario.activo ? "Activo" : "Inactivo",
+    });
       return NextResponse.json(updatedUsuario);
     } catch (error) {
       console.error("❌ Error actualizando usuario:", error);
@@ -61,8 +67,9 @@ export async function PUT(req,context) {
 
   export async function DELETE(req, context) {
     try {
+      console.log("📌 Contexto recibido:", context);
       // Esperar los parámetros correctamente
-      const { params } = await context;
+      const { params } =  await context;
       const id = params?.id;
   
       if (!id || isNaN(id)) {
