@@ -4,7 +4,7 @@ export const metadata = {
   title: "MAQUI+",
   description: "Descripción de tu aplicación",
   icons:{
-    icon: "https://trasplantecapilar.pe/wp-content/uploads/2024/09/logo-ifc.jpg"
+    icon: "https://maquimas.pe/wp-content/themes/maquisistema/img/common/maquiplus-logo.png"
   }
 };
 

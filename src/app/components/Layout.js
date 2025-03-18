@@ -28,6 +28,9 @@ import BadgeIcon from "@mui/icons-material/Badge";
 import ContactPageIcon from "@mui/icons-material/ContactPage";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { useEffect } from "react";
+import { HomeMini, HomeRepairService } from "@mui/icons-material";
+import HomeIcon from "@mui/icons-material/Home";
 
 const drawerWidth = 240;
 
@@ -115,6 +118,21 @@ export default function Layout({ children }) {
           </ListItemIcon>
           <ListItemText primary="Clientes" />
         </ListItem>
+        
+        <ListItem
+          button="true"
+          onClick={() => router.push("/clientesRiesgo")}
+          sx={{
+            "&:hover": { bgcolor: "#2D3748" },
+            px: 3,
+            py: 1.5,
+          }}
+        >
+          <ListItemIcon sx={{ color: "#fff" }}>
+            <PeopleIcon />
+          </ListItemIcon>
+          <ListItemText primary="Clientes en riesgo" />
+        </ListItem>
         {/* <ListItem
           button="true"
           onClick={() => router.push("/dashboard")}
@@ -173,7 +191,7 @@ export default function Layout({ children }) {
             <CalendarMonthIcon />
           </ListItemIcon>
           <ListItemText primary="Promesas de Pago" />
-        </ListItem>
+        </ListItem> */}
         <ListItem
           button="true"
           onClick={() => router.push("/campaigns")}
@@ -187,7 +205,7 @@ export default function Layout({ children }) {
             <CampaignIcon />
           </ListItemIcon>
           <ListItemText primary="Campañas" />
-        </ListItem> */}
+        </ListItem> 
         
         {session?.user?.rol_id === 1 && (
         <ListItem
@@ -245,20 +263,25 @@ export default function Layout({ children }) {
           >
             <MenuIcon />
           </IconButton>
-          <Typography
-            variant="h6"
-            noWrap
-            component="div"
-            sx={{ flexGrow: 1, fontWeight: "bold" }}
-          >
-            CRM CÓDIGO DE PAGOS
-          </Typography>
+          {/* Contenedor con imagen y texto */}
+          <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
+            {/* Imagen al lado del texto */}
+            <img
+              src="https://maquimas.pe/wp-content/themes/maquisistema/img/common/maquiplus-logo.png"
+              alt="Logo"
+              style={{ height: 40, marginRight: 10 }}
+            />
+            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: "bold" }}>
+              CÓDIGOS DE PAGOS
+            </Typography>
+          </Box>
           <IconButton color="inherit" sx={{ mr: 2 }}>
             <NotificationsIcon />
           </IconButton>
           <Avatar
             alt="Usuario"
-            src="https://trasplantecapilar.pe/wp-content/uploads/2024/09/logo-ifc.jpg"
+            //src="https://trasplantecapilar.pe/wp-content/uploads/2024/09/logo-ifc.jpg"
+            src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAAAJFBMVEVHcEztNyLsNyLnNiHuOCPtNyLtNyPuNyLuOCPrNiLuOCPuOCOxF7LxAAAAC3RSTlMASTUO7Gmkic4hukCMuxcAAAB2SURBVCiRzZLZDoAgDARLqVz9//9VTjXZkvjmvJGhkN2U6IaLSMgEObTByHkdIBmndECGKY+vk3n35xxFgzWLqCaYxL6PELd6QTAZc5VCttO0l9tngy2vkpPlQg3KrrEy9aN7rQRP6UFTv5P7NRltRCh7k093At7KD2uUo+ERAAAAAElFTkSuQmCC"
           />
         </Toolbar>
       </AppBar>
@@ -278,8 +301,8 @@ export default function Layout({ children }) {
             "& .MuiDrawer-paper": {
               boxSizing: "border-box",
               width: isDrawerOpen ? drawerWidth : 0,
-              overflowX: "hidden",
-              transition: "width 0.3s",
+              backgroundColor: "#254e59", 
+              borderRight: "none",
             },
           }}
         >
@@ -290,7 +313,7 @@ export default function Layout({ children }) {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          //p: 3,
           transition: "margin-left 0.3s",
           bgcolor: "#F7FAFC",
           height: "100%",

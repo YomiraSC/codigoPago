@@ -112,8 +112,15 @@ export async function GET(req) {
     //   skip: (page - 1) * pageSize,
       
     // });
-    const clientes = await prisma.cliente.findMany({
-      where: filtros,
+    const clientesRiesgo = await prisma.cliente.findMany({
+      where: {
+        ...filtros,
+        codigo_pago: {
+          some: { // Filtra clientes que tengan al menos un código con tipo "especial"
+            tipo_codigo: "especial",
+          },
+        },
+      },
       
       orderBy: { [orderBy]: order },
       take: pageSize,
@@ -127,18 +134,18 @@ export async function GET(req) {
 
         codigo_pago: {
           take: 1, // Solo el código más reciente
-          orderBy: { fecha_asignacion: "desc" }, // Ordenar por fecha de creación descendente
+          orderBy: { fecha_vencimiento: "desc" }, // Ordenar por fecha de creación descendente
           select: {
             tipo_codigo: true,
             codigo: true,
             activo: true,
-            fecha_asignacion: true,
+            fecha_vencimiento: true,
           }
         }
       }
     });
 
-    const clientesTransformados = clientes.map(cliente => {
+    const clientesTransformadosR = clientesRiesgo.map(cliente => {
       
       const codigoPago = cliente.codigo_pago.length > 0 ? cliente.codigo_pago[0] : {};  
       return {
@@ -147,30 +154,26 @@ export async function GET(req) {
         tipo_codigo: codigoPago.tipo_codigo || null,
         codigo_pago: codigoPago.codigo || null,
         activo: codigoPago.activo ? "Activo" : "Vencido", 
-        fecha_asignacion: (() => {
-          const fecha = new Date(codigoPago.fecha_asignacion);
-          return isNaN(fecha.getTime()) ? null : fecha.toISOString().split('T')[0];
-      })(),
-      
+        fecha_vencimiento: new Date(codigoPago.fecha_vencimiento).toISOString().split('T')[0],
       };
     });
     //console.log("Nombre completo generado:", `${cliente.nombre} ${cliente.apellido}`);
 
-    console.log(clientesTransformados);
+    console.log(clientesTransformadosR);
 
-    console.log("✅ Clientes obtenidos:", clientes.length);
+    console.log("✅ Clientes obtenidos:", clientesTransformadosR.length);
 
     // 🛠️ Obtener total de clientes
     const totalClientes = await prisma.cliente.count({ where: filtros });
 
     // 🚨 Verificar valores antes de responder
-    if (!clientes || !Array.isArray(clientes)) {
+    if (!clientesTransformadosR || !Array.isArray(clientesTransformadosR)) {
       console.warn("⚠️ No se encontraron clientes. Enviando array vacío.");
-      return NextResponse.json({ clientes: [], total: 0 });
+      return NextResponse.json({ clientesTransformadosR: [], total: 0 });
     }
 
     return NextResponse.json({
-        clientes: clientesTransformados.map(cliente => ({
+        clientes: clientesTransformadosR.map(cliente => ({
           ...cliente,
           id: cliente.cliente_id, // ✅ Cambiamos `cliente_id` a `id`
         })), total: totalClientes });
