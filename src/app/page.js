@@ -16,11 +16,11 @@ export default async function Home() {
           <p className="mb-4 text-black">
             Estás logueado como <span className="font-semibold">{session.user.name || session.user.email}</span>.
           </p>
-          <Link 
+          {/* <Link 
             href="/dashboard" 
             className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
             Ir al Dashboard
-          </Link>
+          </Link> */}
         </div>
       ) : (
         <div className="text-center space-y-4">
