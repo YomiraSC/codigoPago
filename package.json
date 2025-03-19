@@ -27,6 +27,7 @@
     "bcryptjs": "^3.0.2",
     "date-fns": "2.29.3",
     "dayjs": "^1.11.13",
+    "firebase-admin": "^13.2.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.13.1",
     "next": "15.1.7",
