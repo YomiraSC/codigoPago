@@ -39,7 +39,9 @@ export const fetchClienteById = async (id) => {
 
   export const fetchConversacion = async (clienteId) => {
     try {
+      console.log("conver id pasa");
       const response = await axiosInstance.get(`/conversacion/${clienteId}`);
+      console.log("response: ",response.data.conversaciones);
       return response.data.conversaciones;  // Devuelve solo el array de conversaciones
     } catch (error) {
       console.error("Error al obtener conversación:", error);

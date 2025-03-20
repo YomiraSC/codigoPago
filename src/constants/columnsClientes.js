@@ -79,6 +79,7 @@ const getMotivoStyle = (motivo) => {
   
 
 export const columnsClientes = (edit, conversacion)=> [
+  
   { field: "documento_identidad", headerName: "DNI", flex: 1, minWidth: 120 },
   //{ field: "nombre", headerName: "Nombre", flex: 1, minWidth: 150 },
   { field: "nombreCompleto", headerName: "Nombre", flex: 1, minWidth: 150 },
@@ -166,6 +167,7 @@ export const columnsClientes = (edit, conversacion)=> [
         <Button
             variant="contained"
             onClick={() => {
+              console.log("📌 Botón clickeado - cliente ID:", params.row.id);
               conversacion(params.row.id)
             }}
         >

@@ -15,7 +15,7 @@ import axiosInstance from "./api";
 const API_URL = "/campaigns";
 
 export const getCampaigns = async (page = 1, pageSize = 10) => {
-    const response = await axiosInstance.get(`${API_URL}?page=${page}&pageSize=${pageSize}`);
+    const response = await axiosInstance.get(`/campaigns?page=${page}&pageSize=${pageSize}`);
     return response.data;
 };
 
@@ -25,7 +25,10 @@ export const getTemplates = async () => {
 };
 
 export const createCampaign = async (campaignData) => {
-  return await axiosInstance.post(API_URL, {
+  console.log("Base URL:", axiosInstance.defaults.baseURL);
+  console.log("Endpoint:", "/campaigns");
+
+  return await axiosInstance.post("/campaigns", {
       nombre_campanha: campaignData.nombre_campanha,
       descripcion: campaignData.descripcion,
       template_id: campaignData.template_id, // 📌 Asegurar que es un número
@@ -62,7 +65,7 @@ export const getCampaignById = async (id, page = 1, pageSize = 10) => {
 
 // 🔹 Eliminar un cliente de una campaña
 export const removeClientFromCampaign = async (id, clientId) => {
-    const response = await axiosInstance.delete(`/campaings/${id}/clientes`, {
+    const response = await axiosInstance.delete(`/campaigns/${id}/clientes`, {
       data: { cliente_id: clientId },
     });
     return response.data;
@@ -71,7 +74,7 @@ export const removeClientFromCampaign = async (id, clientId) => {
 
   export const updateCampaign = async (campaignId, campaignData) => {
     try {
-      const response = await axiosInstance.put(`/campaings/${campaignId}`, campaignData);
+      const response = await axiosInstance.put(`/campaigns/${campaignId}`, campaignData);
       return response.data;
     } catch (error) {
       console.error("❌ Error al actualizar campaña:", error);
@@ -81,7 +84,7 @@ export const removeClientFromCampaign = async (id, clientId) => {
 
   export const sendCampaignMessages = async (campaignId) => {
     try {
-      const response = await axiosInstance.post(`/campaings/${campaignId}/send`);
+      const response = await axiosInstance.post(`/campaigns/${campaignId}/send`);
       return response.data;
     } catch (error) {
       console.error("❌ Error al enviar campaña:", error);
