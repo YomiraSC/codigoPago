@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { getCampaignsgetTemplates, 
+import { getCampaigns,
+  getTemplates, 
   createCampaign, 
   updateCampaign, // ✅ Función para actualizar campaña
   deleteCampaign } from "../../services/campaignService";
@@ -24,7 +25,7 @@ const useCampaigns = () => {
     setError(null);
     try {
       const { campaigns, totalCount } = await getCampaigns();
-      // setCampaigns(campaigns || []); // 🔹 Evita undefined
+      //setCampaigns(campaigns || []); // 🔹 Evita undefined
       // setPagination((prev) => ({ ...prev, total: totalCount || 0 }));
       const formattedCampaigns = campaigns.map((campaign) => ({
         ...campaign,
@@ -64,7 +65,7 @@ const useCampaigns = () => {
         await createCampaign(data);
       }
       fetchCampaigns();
-      setOpenModal(false);
+      setOpenModal(false);  
     } catch (err) {
       console.error("Error al guardar campaña:", err);
     }

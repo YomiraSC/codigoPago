@@ -55,12 +55,16 @@ export function useClientes() {
 
   // 🔹 Función para obtener la conversación del cliente
   const handleVerConversacion = async (clienteId) => {
+    console.log("Ejecutando handleVerConversacion con clienteId:", clienteId);
     setConversationLoading(true);
     setOpenConversationModal(true);
 
     try {
       const data = await fetchConversacion(clienteId);
+      console.log("Datos de conversación:", data);
       setConversationData(data);
+      
+
     } catch (error) {
       console.error("Error al obtener la conversación:", error);
       setConversationData(null);
@@ -74,12 +78,13 @@ export function useClientes() {
     setOpenConversationModal(false);
     setConversationData(null);
     setSelectedConversation(0);
+    console.log("ola close");
   };
 
   const handleSaveCliente = async (clienteData) => {
     setLoading(true);
     try {
-      await updateCliente(clienteData);
+      await updateCliente(clienteData); 
 
       // 🔄 Actualizar la lista en el frontend
       setClientes((prevClientes) =>

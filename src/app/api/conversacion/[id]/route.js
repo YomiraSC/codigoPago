@@ -37,7 +37,7 @@ export async function GET(request, context) {
       const db = mongoClient.db(process.env.MONGODB_DB);
       const conversaciones = await db.collection("clientes").findOne(
         { celular: cliente.celular },
-        { projection: { conversaciones: 1 } }
+        { projection: { conversaciones: 1 } }//pq trae 1?
       );
       console.log("conversion",conversaciones);
   
@@ -76,7 +76,7 @@ export async function GET(request, context) {
     try {
       const params = await context.params;
       const { id } = params;//se obtiene de clientesService
-  
+      console.log("id es: ",id);
       // Buscar cliente en Prisma (MySQL/PostgreSQL)
       const cliente = await prisma.cliente.findUnique({
         where: { cliente_id: parseInt(id) },
@@ -95,8 +95,9 @@ export async function GET(request, context) {
       // Consultar Firestore: Obtener mensajes del cliente con id_bot = codigopago
       const mensajesRef = db.collection("test")
         .where("celular", "==", cliente.celular)
-        .where("id_bot", "==", "codigopago")  
-        .orderBy("fecha", "asc");
+        .where("id_bot", "==", "codigopago"); 
+        //.orderBy("fecha", "asc");
+      console.log("celu:", cliente.celular);
 
       const mensajesSnap = await mensajesRef.get();
       console.log("Cantidad de documentos encontrados:", mensajesSnap.size); 
@@ -107,17 +108,38 @@ export async function GET(request, context) {
       
       const mensajes = mensajesSnap.docs.map(doc => {
         console.log("ID del documento:", doc.id); // Ver los IDs en la consola
+        //console.log("Datos del mensaje:", doc.data);
         return {
           id: doc.id,
           ...doc.data(),
         };
       });
+
+      console.log("Todos los mensajes obtenidos:", mensajes);
+      const mensajesFormateados = mensajes.map((msg) => ({
+        ...msg,
+        fecha: msg.fecha?._seconds 
+          ? new Date(msg.fecha._seconds * 1000).toLocaleString("es-ES", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "Fecha no disponible"
+      }));
+      
+      console.log(mensajesFormateados); // Verifica el cambio
+      
+      
       return NextResponse.json({
         cliente: {
+          cliente_id: cliente.id,
           nombreCompleto: `${cliente.nombre} ${cliente.apellido}`,
           celular: cliente.celular,
         },
-        conversaciones: mensajes,
+        conversaciones: mensajesFormateados,
       });
     } catch (error) {
       console.error("Error al obtener conversaciones del cliente:", error);
