@@ -146,7 +146,7 @@ export default function Layout({ children }) {
           <ListItemIcon sx={{ color: "#fff" }}>
             <PeopleIcon />
           </ListItemIcon>
-          <ListItemText primary="Clientes en riesgo" />
+          <ListItemText primary="Seguimiento" />
         </ListItem>
         {/* <ListItem
           button="true"
