@@ -55,7 +55,7 @@ model cita {
 
 model cliente {
   cliente_id                   Int                @id @default(autoincrement())
-  documento_identidad          String?            @db.VarChar(12)
+  documento_identidad          String?            @unique(map: "unique_documento_identidad") @db.VarChar(12)
   tipo_documento               String?            @db.VarChar(20)
   nombre                       String             @db.VarChar(100)
   apellido                     String?            @db.VarChar(100)
@@ -98,7 +98,7 @@ model cliente_campanha {
 model codigo_pago {
   id_codigo_pago    Int       @id @default(autoincrement())
   cliente_id        Int?
-  codigo            Int       @unique
+  codigo            String    @unique @db.VarChar(50)
   tipo_codigo       String?   @db.VarChar(50)
   caso_relacionado  String?   @db.VarChar(100)
   fecha_asignacion  DateTime  @db.Date
@@ -107,6 +107,7 @@ model codigo_pago {
   pago_realizado    Boolean?  @default(false)
   fecha_pago        DateTime? @db.Date
   numero_cuota      Int?
+  id_contrato       String?   @unique @db.VarChar(50)
   cliente           cliente?  @relation(fields: [cliente_id], references: [cliente_id], onDelete: Cascade, onUpdate: NoAction, map: "codigo_pago_fk_cliente")
 }
 

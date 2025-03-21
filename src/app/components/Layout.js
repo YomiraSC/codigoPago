@@ -134,7 +134,7 @@ export default function Layout({ children }) {
           <ListItemText primary="Clientes" />
         </ListItem>
         
-        {/* <ListItem
+        <ListItem
           button="true"
           onClick={() => router.push("/clientesRiesgo")}
           sx={{
@@ -147,7 +147,7 @@ export default function Layout({ children }) {
             <PeopleIcon />
           </ListItemIcon>
           <ListItemText primary="Clientes en riesgo" />
-        </ListItem> */}
+        </ListItem>
         {/* <ListItem
           button="true"
           onClick={() => router.push("/dashboard")}

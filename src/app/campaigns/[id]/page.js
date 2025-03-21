@@ -1,8 +1,9 @@
 "use client";
-
+import { useClientes } from "@/hooks/useClientes";
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import useCampaignDetail from "@/hooks/useCampaignsDetail";
+import { DataGrid } from "@mui/x-data-grid";
 import {
   Box, Typography, Button, CircularProgress, Alert, Dialog, DialogTitle, 
   DialogContent, DialogActions, Table, TableHead, TableRow, TableCell, TableBody, 
@@ -22,6 +23,15 @@ const CampaignDetailPage = () => {
   const [clients, setClients] = useState([]);
   const [loadingUpload, setLoadingUpload] = useState(false);
   const fileInputRef = useRef(null);
+  
+  const {filters,setFilters} = useClientes();
+    const [clientesRiesgo, setClientesRiesgo] = useState([]);
+    const [loading1, setLoading1] = useState(true);
+    //const [openModal, setOpenModal] = useState(false);
+    const [editingUser, setEditingUser] = useState(null);
+    //const [pagination, setPagination] = useState({ page: 1, pageSize: 10 });
+    const [sortModel, setSortModel] = useState([]);  
+    const [totalCR, setCR] = useState(0);
 
   const {
     campaign,
@@ -42,7 +52,25 @@ const CampaignDetailPage = () => {
       fetchCampaignDetail();
     }
     console.log("camapla",campaign);
-  }, [campaignId]);
+    const fetchCR= async () => {
+        try {
+          
+          const res = await fetch("/api/clientesRiesgo");
+          // const data = await res.json();
+          // setUsuarios(data);
+          const { clientesTransformadosR, total } = await res.json(); // ✅ Leer ambos valores
+        
+          setClientesRiesgo(clientesTransformadosR);
+          setCR(total);
+  
+        } catch (error) {
+          console.error("❌ Error al obtener usuarios:", error);
+        } finally {
+          setLoading1(false);
+        }
+      };
+      fetchCR();
+  }, [campaignId,loading1]);
 
   const handleFileUpload = (event) => {
     const uploadedFile = event.target.files[0];
@@ -78,7 +106,34 @@ const CampaignDetailPage = () => {
     fetchCampaignDetail();
     setLoadingUpload(false);
   };
+  const columns = [
+    { field: "documento_identidad", headerName: "DNI", flex: 1, minWidth: 120 },
+  //{ field: "nombre", headerName: "Nombre", flex: 1, minWidth: 150 },
+  { field: "nombreCompleto", headerName: "Nombre", flex: 1, minWidth: 150 },
 
+  
+  
+  { field: "celular", headerName: "Teléfono", flex: 1, minWidth: 120 },
+  { field: "tipo_codigo", headerName: "Tipo de Código", flex: 1, minWidth: 120},
+  { field: "codigo_pago", headerName: "Código", flex: 1, minWidth: 120},
+  { field: "fecha_vencimiento", headerName: "Fecha de vencimiento", flex: 1, minWidth: 120},
+    {
+      field: "acciones",
+      headerName: "Acciones",
+      flex: 1,
+      minWidth: 150,
+      renderCell: (params) => (
+        <>
+          <IconButton onClick={() => handleOpenModal(params.row)} color="primary">
+            <EditIcon />
+          </IconButton>
+          <IconButton onClick={() => handleDelete(params.row.usuario_id)} color="error">
+            <DeleteIcon />
+          </IconButton>
+        </>
+      ),
+    },
+  ];
   return (
     <Box p={3} width="100%" maxWidth="1200px" margin="auto" height="100%">
       {loading ? (
@@ -121,14 +176,24 @@ const CampaignDetailPage = () => {
             >
               Volver
             </Button>
-            <Button
+            {/* <Button
               variant="contained"
-              onClick={() => setOpenModal(true)}
+              onClick={() => handleCargarClientes(true)}
               sx={{ backgroundColor: "#007391", "&:hover": { backgroundColor: "#005c6b" } }}
               startIcon={<UploadFile />}
             >
               Subir Clientes desde Excel
+            </Button> */}
+
+            <Button
+              variant="contained"
+              onClick={() => handleSave}
+              sx={{ backgroundColor: "#007391", "&:hover": { backgroundColor: "#005c6b" } }}
+              startIcon={<UploadFile />}
+            >
+              Cargar Clientes
             </Button>
+
             <Button
               variant="contained"
               onClick={handleSendCampaign}
@@ -140,15 +205,16 @@ const CampaignDetailPage = () => {
           </Box>
 
           {/* 🔹 TABLA DE CLIENTES */}
-          <CustomDataGrid
+          {/* <CustomDataGrid
             pagination={pagination}
             setPagination={setPagination}
             rows={campaignClients}
             totalRows={pagination.total}
             columns={[
-              { field: "id", headerName: "ID Cliente", flex: 1 },
+              { field: "documento_identidad", headerName: "DNI", flex: 1, minWidth: 120 },
               { field: "nombre", headerName: "Nombre", flex: 1 },
               { field: "celular", headerName: "Celular", flex: 1 },
+              { field: "tipo_codigo", headerName: "Tipo de Código", flex: 1, minWidth: 120},
               {
                 field: "acciones",
                 headerName: "Acciones",
@@ -163,7 +229,34 @@ const CampaignDetailPage = () => {
                 ),
               },
             ]}
-          />
+          /> */}
+          <div className="bg-white p-4 rounded-md shadow-md mt-6">
+                            
+                            <DataGrid
+                              rows={clientesRiesgo}
+                              columns={columns}
+                              pagination
+                              paginationMode="server"
+                              rowCount={setCR}
+                              pageSizeOptions={[5, 10, 20, 50]} // 🔹 Opciones de filas por página
+                              paginationModel={{
+                                page: pagination.page - 1, // 🔹 DataGrid usa base 0
+                                pageSize: pagination.pageSize,
+                              }}
+                              onPaginationModelChange={({ page, pageSize }) => {
+                                setPagination((prev) => ({ ...prev, page: page + 1, pageSize })); // 🔹 Reactualiza el estado de paginación
+                              }}
+                              sortingMode="client"
+                              sortModel={sortModel}
+                              onSortModelChange={setSortModel}
+                              loading={loading}
+                              getRowId={(row) => row.usuario_id} 
+                            />
+                            {/* {openModal && <UsuarioModal open={openModal} onClose={handleCloseModal} onSave={handleSave} user={editingUser} />}  */}
+                          </div>
+
+          
+
 
           {/* 🔹 MODAL DE CARGA DE CLIENTES */}
           <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="md" fullWidth>

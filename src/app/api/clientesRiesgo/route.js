@@ -117,7 +117,7 @@ export async function GET(req) {
         ...filtros,
         codigo_pago: {
           some: { // Filtra clientes que tengan al menos un código con tipo "especial"
-            tipo_codigo: "especial",
+            tipo_codigo: "Recaudación",
           },
         },
       },
@@ -162,20 +162,28 @@ export async function GET(req) {
     console.log(clientesTransformadosR);
 
     console.log("✅ Clientes obtenidos:", clientesTransformadosR.length);
+    //console.log("🕵️‍♂️ Filtros usados:", filtros);
 
     // 🛠️ Obtener total de clientes
-    const totalClientes = await prisma.cliente.count({ where: filtros });
+    const totalClientes = await prisma.cliente.count({where: {
+      ...filtros,
+      codigo_pago: {
+        some: { // Filtra clientes que tengan al menos un código con tipo "especial"
+          tipo_codigo: "Recaudación",
+        },
+      },
+    }});
 
     // 🚨 Verificar valores antes de responder
-    if (!clientesTransformadosR || !Array.isArray(clientesTransformadosR)) {
+    if (!clientesRiesgo || !Array.isArray(clientesRiesgo)) {
       console.warn("⚠️ No se encontraron clientes. Enviando array vacío.");
-      return NextResponse.json({ clientesTransformadosR: [], total: 0 });
+      return NextResponse.json({ clientesRiesgo: [], total: 0 });
     }
 
     return NextResponse.json({
         clientes: clientesTransformadosR.map(cliente => ({
           ...cliente,
-          id: cliente.cliente_id, // ✅ Cambiamos `cliente_id` a `id`
+          c_id: cliente.cliente_id, // ✅ Cambiamos `cliente_id` a `id`
         })), total: totalClientes });
   } catch (error) {
     console.error("❌ Error en el try-catch:", error);
