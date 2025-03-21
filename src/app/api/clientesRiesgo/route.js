@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import bigquery from "@/lib/bigquery";
 
 export async function GET(req) {
   try {
@@ -40,30 +41,6 @@ export async function GET(req) {
       ];
     }
 
-    /* if (activo && activo !== "Todos") {
-      filtros.codigo_pago = {
-        some: {
-          activo: activo === "Activo" ? true : false// ✅ Se filtra dentro de `codigo_pago`
-        }
-      };
-      
-    }
-    if (tipoCod && tipoCod !== "Todos") {
-      filtros.codigo_pago = {
-        some: {
-          tipo_codigo: tipoCod // ✅ Se filtra dentro de `codigo_pago`
-        }
-      };
-      
-    } */
-    /* if ((activo && activo !== "Todos") || (tipoCod && tipoCod !== "Todos")) {
-      filtros.codigo_pago = {
-        some: {
-          ...(activo && activo !== "Todos" && { activo: activo === "Activo" }),
-          ...(tipoCod && tipoCod !== "Todos" && { tipo_codigo: tipoCod }),
-        }
-      };
-    } */
 
     if ((activo && activo !== "Todos") || (tipoCod && tipoCod !== "Todos") || (fechaInicio && fechaFin)) {
       filtros.codigo_pago = {
@@ -86,32 +63,8 @@ export async function GET(req) {
     }
     
 
-    
-
-
-    /* if (fechaInicio && fechaFin) {
-      if (!filtros.codigo_pago) {
-        filtros.codigo_pago = {};
-      }
-    
-      filtros.codigo_pago.some = {
-        fecha_asignacion: {
-          gte: fechaInicio, // Mayor o igual a la fecha de inicio
-          lte: fechaFin,    // Menor o igual a la fecha de fin
-        }
-      };
-    } */
-
     console.log("📌 Filtros aplicados:", filtros);
 
-    // 🛠️ Obtener clientes con Prisma
-    // const clientes = await prisma.cliente.findMany({
-    //   where: filtros,
-    //   orderBy: { [orderBy]: order },
-    //   take: pageSize,
-    //   skip: (page - 1) * pageSize,
-      
-    // });
     const clientesRiesgo = await prisma.cliente.findMany({
       where: {
         ...filtros,
@@ -139,6 +92,7 @@ export async function GET(req) {
             tipo_codigo: true,
             codigo: true,
             activo: true,
+            id_contrato: true,
             fecha_vencimiento: true,
           }
         }
@@ -153,6 +107,7 @@ export async function GET(req) {
         nombreCompleto: `${cliente.nombre} ${cliente.apellido}`, // Concatenar nombre y apellido
         tipo_codigo: codigoPago.tipo_codigo || null,
         codigo_pago: codigoPago.codigo || null,
+        id_contrato: codigoPago.id_contrato || null,
         activo: codigoPago.activo ? "Activo" : "Vencido", 
         fecha_vencimiento: new Date(codigoPago.fecha_vencimiento).toISOString().split('T')[0],
       };

@@ -132,6 +132,7 @@ export async function GET(req) {
             tipo_codigo: true,
             codigo: true,
             activo: true,
+            id_contrato: true,
             fecha_asignacion: true,
           }
         }
@@ -146,6 +147,7 @@ export async function GET(req) {
         nombreCompleto: `${cliente.nombre} ${cliente.apellido}`, // Concatenar nombre y apellido
         tipo_codigo: codigoPago.tipo_codigo || null,
         codigo_pago: codigoPago.codigo || null,
+        id_contrato: codigoPago.id_contrato || null,
         activo: codigoPago.activo ? "Activo" : "Vencido", 
         fecha_asignacion: (() => {
           const fecha = new Date(codigoPago.fecha_asignacion);
