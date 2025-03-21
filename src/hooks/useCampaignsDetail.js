@@ -20,12 +20,13 @@ const useCampaignDetail = (id) => {
   const fetchCampaignDetail = async () => {
     setLoading(true);
     try {
-      const { campanha_id, nombre_campanha, fecha_creacion, fecha_fin, estado_campanha, 
+      const { campanha_id, descripcion, nombre_campanha, fecha_creacion, fecha_fin, estado_campanha, 
               mensaje_cliente, template, clientes, pagination: pagData } = await getCampaignById(id, pagination.page, pagination.pageSize);
-
+        console.log("camp id use: ", campanha_id);
       // Actualiza la información de la campaña
       setCampaign({
         campanha_id,
+        descripcion,
         nombre_campanha,
         fecha_creacion,
         fecha_fin,
@@ -33,7 +34,7 @@ const useCampaignDetail = (id) => {
         mensaje_cliente,
         template
       });
-
+      
       // Actualiza la lista de clientes y la paginación
       setClients(clientes);
       setPagination((prev) => ({
@@ -71,8 +72,9 @@ const useCampaignDetail = (id) => {
       await removeClientFromCampaign(id, clientId);
       fetchCampaignDetail();
     },
-    handleUploadClients: async (file) => {
-      await uploadClients(id, file);
+    handleUploadClients: async () => {
+      console.log("se paso a handleUploadClients: ",id);
+      await uploadClients(id);
       fetchCampaignDetail();
     },
     handleSendCampaign: async () => {

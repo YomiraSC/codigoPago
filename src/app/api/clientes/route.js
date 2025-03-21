@@ -134,6 +134,7 @@ export async function GET(req) {
             activo: true,
             id_contrato: true,
             fecha_asignacion: true,
+            pago_realizado: true,
           }
         }
       }
@@ -149,6 +150,7 @@ export async function GET(req) {
         codigo_pago: codigoPago.codigo || null,
         id_contrato: codigoPago.id_contrato || null,
         activo: codigoPago.activo ? "Activo" : "Vencido", 
+        pago_realizado: codigoPago.pago_realizado ? "Cancelado" : "Vigente",
         fecha_asignacion: (() => {
           const fecha = new Date(codigoPago.fecha_asignacion);
           return isNaN(fecha.getTime()) ? null : fecha.toISOString().split('T')[0];

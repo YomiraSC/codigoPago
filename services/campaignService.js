@@ -36,11 +36,11 @@ export const createCampaign = async (campaignData) => {
   });
 };
 
-export const uploadClients = async (campaignId, file) => {
-  const formData = new FormData();
-  formData.append("archivo", file);
+export const uploadClients = async (campaignId) => {
+  // const formData = new FormData();
+  // formData.append("archivo", file);
 
-  return await axiosInstance.post(`/campaigns/${campaignId}/cargar-clientes`, formData, {
+  return await axiosInstance.post(`/campaigns/${campaignId}/cargar-clientes`,{
       headers: { "Content-Type": "multipart/form-data" },
   });
 };
@@ -57,6 +57,7 @@ export const deleteCampaign = async (campaignId) => {
 
 // 🔹 Obtener detalle de una campaña con clientes paginados
 export const getCampaignById = async (id, page = 1, pageSize = 10) => {
+    console.log("🔹 ID recibido:", id);  // <-- Verifica que el ID es correcto
     const response = await axiosInstance.get(`/campaigns/${id}/clientes`, {
       params: { page, pageSize },
     });

@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import bigquery from "@/lib/bigquery";
+//import bigquery from "@/lib/bigquery";
+
+
+
+
 
 export async function GET(req) {
   try {
@@ -71,6 +75,7 @@ export async function GET(req) {
         codigo_pago: {
           some: { // Filtra clientes que tengan al menos un código con tipo "especial"
             tipo_codigo: "Recaudación",
+            pago_realizado: false,
           },
         },
       },
@@ -93,11 +98,33 @@ export async function GET(req) {
             codigo: true,
             activo: true,
             id_contrato: true,
+            pago_realizado: true,
             fecha_vencimiento: true,
           }
         }
       }
     });
+    // const contratos = clientesRiesgo.map((c) => c.codigo_pago[0]?.id_contrato).filter(Boolean);
+
+    // if (contratos.length > 0) {
+    //   const query = `
+    //     SELECT Codigo_Asociado, Pago_cuota 
+    //     FROM \`peak-emitter-350713.FR_general.bd_fondos\`
+    //     WHERE Codigo_Asociado IN UNNEST(@contratos)
+    //   `;
+    //   const options = { query, params: { contratos } };
+    //   const [rows] = await bigquery.query(options);
+
+    //   const pagosMap = rows.reduce((acc, row) => {
+    //     acc[row.id_contrato] = row.Pago_cuota === "Si";
+    //     return acc;
+    //   }, {});
+
+    //   clientesRiesgo.forEach((cliente) => {
+    //     const codigoPago = cliente.codigo_pago[0] || {};
+    //     cliente.codigoPago[0].pago_realizado = pagosMap[codigoPago.id_contrato] || false;
+    //   });
+    // }
 
     const clientesTransformadosR = clientesRiesgo.map(cliente => {
       
@@ -109,6 +136,7 @@ export async function GET(req) {
         codigo_pago: codigoPago.codigo || null,
         id_contrato: codigoPago.id_contrato || null,
         activo: codigoPago.activo ? "Activo" : "Vencido", 
+        pago_realizado: codigoPago.pago_realizado? "Cancelado" : "Vigente",
         fecha_vencimiento: new Date(codigoPago.fecha_vencimiento).toISOString().split('T')[0],
       };
     });
@@ -125,6 +153,7 @@ export async function GET(req) {
       codigo_pago: {
         some: { // Filtra clientes que tengan al menos un código con tipo "especial"
           tipo_codigo: "Recaudación",
+          pago_realizado: false,
         },
       },
     }});

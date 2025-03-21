@@ -229,7 +229,8 @@ export default function CRPage() {
     { field: "celular", headerName: "Teléfono", flex: 1, minWidth: 120 },
     { field: "tipo_codigo", headerName: "Tipo de Código", flex: 1, minWidth: 120 },
     { field: "codigo_pago", headerName: "Código", flex: 1, minWidth: 120 },
-    { field: "fecha_vencimiento", headerName: "Fecha de vencimiento", flex: 1, minWidth: 120 },
+    //{ field: "fecha_vencimiento", headerName: "Fecha de vencimiento", flex: 1, minWidth: 120 },
+    { field: "pago_realizado", headerName: "Estado de Pago", flex: 1, minWidth: 120 },
   ];
 
   return (

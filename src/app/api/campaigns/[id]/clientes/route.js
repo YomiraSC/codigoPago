@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-export async function GET(req, { params }) {
+export async function GET(req, context) {
+  const params = await context.params; // Extraemos correctamente los params de context
+  console.log("🔹 Params recibidos:", params); // Agrega este log para depuración
+  //const campanhaId = Number(params.id);
+
   try {
+    
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1", 10);
     const pageSize = parseInt(searchParams.get("pageSize") || "10", 10);
@@ -30,7 +35,14 @@ export async function GET(req, { params }) {
     // Obtener clientes paginados
     const clientes = await prisma.cliente_campanha.findMany({
       where: { campanha_id: parseInt(params.id) },
-      include: { cliente: true },
+      include: { cliente: {
+        include: {
+          codigo_pago: { 
+            take: 1, // ✅ Solo el código de pago más reciente
+            orderBy: { fecha_vencimiento: "desc" }, // ✅ Ordenado por fecha de vencimiento descendente
+          }
+        }
+      } },
       skip: (page - 1) * pageSize,
       take: pageSize,
     });
@@ -53,11 +65,17 @@ export async function GET(req, { params }) {
         : { nombre_template: "No asignado", mensaje: "No definido" },
       clientes: clientes.map((c) => ({
         id: c.cliente.cliente_id, // ✅ ID único del cliente
-        nombre: c.cliente.nombre,
+        documento_identidad: c.cliente.documento_identidad,
+        nombreCompleto: `${c.cliente.nombre} ${c.cliente.apellido}`,
         celular: c.cliente.celular,
-        email: c.cliente.email,
-        estado: c.cliente.estado,
         fecha_ultima_interaccion: c.cliente.fecha_ultima_interaccion,
+        codigo_pago: c.cliente.codigo_pago?.[0]? {
+          tipo_codigo: c.cliente.codigo_pago[0].tipo_codigo,
+          codigo: c.cliente.codigo_pago[0].codigo,
+          id_contrato: c.cliente.codigo_pago[0].id_contrato,
+          pago_realizado: c.cliente.codigo_pago[0].pago_realizado  ? "Pagado" : "No pagado",
+        }
+      : null, // Si no tiene código de pago, devuelve `null`
       })),
       pagination: {
         total: totalClientes,

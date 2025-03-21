@@ -17,7 +17,7 @@ const CampaignDetailPage = () => {
   const params = useParams();
   const router = useRouter();
   const campaignId = params?.id;
-  
+  console.log("idcampagna: ",campaignId);
   const [openModal, setOpenModal] = useState(false);
   const [file, setFile] = useState(null);
   const [clients, setClients] = useState([]);
@@ -52,15 +52,16 @@ const CampaignDetailPage = () => {
       fetchCampaignDetail();
     }
     console.log("camapla",campaign);
+    setLoading1(true);
     const fetchCR= async () => {
         try {
           
-          const res = await fetch("/api/clientesRiesgo");
-          // const data = await res.json();
-          // setUsuarios(data);
-          const { clientesTransformadosR, total } = await res.json(); // ✅ Leer ambos valores
-        
-          setClientesRiesgo(clientesTransformadosR);
+          const res = await fetch(`/api/clientesRiesgo?page=${pagination.page}&pageSize=${pagination.pageSize}`);
+          const { clientes, total } = await res.json();
+          
+          console.log("Clientes recibidos:", clientes, "Total:", total);
+          
+          setClientesRiesgo(clientes);
           setCR(total);
   
         } catch (error) {
@@ -70,7 +71,7 @@ const CampaignDetailPage = () => {
         }
       };
       fetchCR();
-  }, [campaignId,loading1]);
+  }, [campaignId,pagination.page, pagination.pageSize]);
 
   const handleFileUpload = (event) => {
     const uploadedFile = event.target.files[0];
@@ -97,9 +98,10 @@ const CampaignDetailPage = () => {
   };
 
   const handleSaveClients = async () => {
-    if (!file) return;
+    //if (!file) return;
+    console.log("pasa handleSaveClients");
     setLoadingUpload(true);
-    await handleUploadClients(file);
+    await handleUploadClients();
     setOpenModal(false);
     setFile(null);
     setClients([]);
@@ -107,32 +109,14 @@ const CampaignDetailPage = () => {
     setLoadingUpload(false);
   };
   const columns = [
+    { field: "id_contrato", headerName: "ID Contrato", flex: 1, minWidth: 120 },
     { field: "documento_identidad", headerName: "DNI", flex: 1, minWidth: 120 },
-  //{ field: "nombre", headerName: "Nombre", flex: 1, minWidth: 150 },
-  { field: "nombreCompleto", headerName: "Nombre", flex: 1, minWidth: 150 },
-
-  
-  
-  { field: "celular", headerName: "Teléfono", flex: 1, minWidth: 120 },
-  { field: "tipo_codigo", headerName: "Tipo de Código", flex: 1, minWidth: 120},
-  { field: "codigo_pago", headerName: "Código", flex: 1, minWidth: 120},
-  { field: "fecha_vencimiento", headerName: "Fecha de vencimiento", flex: 1, minWidth: 120},
-    {
-      field: "acciones",
-      headerName: "Acciones",
-      flex: 1,
-      minWidth: 150,
-      renderCell: (params) => (
-        <>
-          <IconButton onClick={() => handleOpenModal(params.row)} color="primary">
-            <EditIcon />
-          </IconButton>
-          <IconButton onClick={() => handleDelete(params.row.usuario_id)} color="error">
-            <DeleteIcon />
-          </IconButton>
-        </>
-      ),
-    },
+    { field: "nombreCompleto", headerName: "Nombre", flex: 1, minWidth: 150 },
+    { field: "celular", headerName: "Teléfono", flex: 1, minWidth: 120 },
+    { field: "tipo_codigo", headerName: "Tipo de Código", flex: 1, minWidth: 120 },
+    { field: "codigo_pago", headerName: "Código", flex: 1, minWidth: 120 },
+    //{ field: "fecha_vencimiento", headerName: "Fecha de vencimiento", flex: 1, minWidth: 120 },
+    { field: "pago_realizado", headerName: "Estado de Pago", flex: 1, minWidth: 120 },
   ];
   return (
     <Box p={3} width="100%" maxWidth="1200px" margin="auto" height="100%">
@@ -187,7 +171,7 @@ const CampaignDetailPage = () => {
 
             <Button
               variant="contained"
-              onClick={() => handleSave}
+              onClick={handleSaveClients}
               sx={{ backgroundColor: "#007391", "&:hover": { backgroundColor: "#005c6b" } }}
               startIcon={<UploadFile />}
             >
@@ -211,10 +195,13 @@ const CampaignDetailPage = () => {
             rows={campaignClients}
             totalRows={pagination.total}
             columns={[
+              { field: "id_contrato", headerName: "Código Contrato", flex: 1, minWidth: 120 },
               { field: "documento_identidad", headerName: "DNI", flex: 1, minWidth: 120 },
-              { field: "nombre", headerName: "Nombre", flex: 1 },
-              { field: "celular", headerName: "Celular", flex: 1 },
-              { field: "tipo_codigo", headerName: "Tipo de Código", flex: 1, minWidth: 120},
+              { field: "nombreCompleto", headerName: "Nombre", flex: 1, minWidth: 150 },
+              { field: "celular", headerName: "Teléfono", flex: 1, minWidth: 120 },
+              { field: "tipo_codigo", headerName: "Tipo de Código", flex: 1, minWidth: 120 },
+              { field: "codigo_pago", headerName: "Código", flex: 1, minWidth: 120 },
+              { field: "pago_realizado", headerName: "Estado de Pago", flex: 1, minWidth: 120 },
               {
                 field: "acciones",
                 headerName: "Acciones",
@@ -231,29 +218,82 @@ const CampaignDetailPage = () => {
             ]}
           /> */}
           <div className="bg-white p-4 rounded-md shadow-md mt-6">
+            <DataGrid
+              rows={campaignClients}
+              columns={[
+                { field: "id_contrato", headerName: "Código Contrato", flex: 1, minWidth: 120,
+                  renderCell: (params) => params.row.codigo_pago ? params.row.codigo_pago.id_contrato : "Sin contrato"
+                },
+                { field: "documento_identidad", headerName: "DNI", flex: 1, minWidth: 120 },
+                { field: "nombreCompleto", headerName: "Nombre", flex: 1, minWidth: 150 },
+                { field: "celular", headerName: "Teléfono", flex: 1, minWidth: 120 },
+                { field: "tipo_codigo", headerName: "Tipo de Código", flex: 1, minWidth: 120,
+                  renderCell: (params) => params.row.codigo_pago ? params.row.codigo_pago.tipo_codigo : "N/A"
+                },
+                { field: "codigo", headerName: "Código", flex: 1, minWidth: 120,
+                  renderCell: (params) => params.row.codigo_pago ? params.row.codigo_pago.codigo : "N/A"
+                },
+                { field: "pago_realizado", headerName: "Estado de Pago", flex: 1, minWidth: 120,
+                  renderCell: (params) => params.row.codigo_pago ? params.row.codigo_pago.pago_realizado : "Pendiente"
+                },
+                {
+                  field: "acciones",
+                  headerName: "Acciones",
+                  flex: 1,
+                  renderCell: (params) => (
+                    <IconButton
+                      onClick={() => handleRemoveClient(params.row.cliente_id)}
+                      sx={{ color: "#D32F2F" }}
+                    >
+                      <Delete />
+                    </IconButton>
+                  ),
+                },
+              ]}
+              pagination
+              paginationMode="server"
+              rowCount={pagination.total}
+              pageSizeOptions={[5, 10, 20, 50]} // 🔹 Opciones de filas por página
+              paginationModel={{
+                page: pagination.page - 1, // 🔹 DataGrid usa base 0
+                pageSize: pagination.pageSize,
+              }}
+              onPaginationModelChange={({ page, pageSize }) => {
+                setPagination((prev) => ({ ...prev, page: page + 1, pageSize })); // 🔹 Reactualiza el estado de paginación
+              }}
+              sortingMode="server"
+              sortModel={sortModel}
+              onSortModelChange={setSortModel}
+              autoHeight
+            />
+          </div>
+          {/* <div className="bg-white p-4 rounded-md shadow-md mt-6">
                             
                             <DataGrid
                               rows={clientesRiesgo}
                               columns={columns}
                               pagination
                               paginationMode="server"
-                              rowCount={setCR}
+                              rowCount={totalCR}
                               pageSizeOptions={[5, 10, 20, 50]} // 🔹 Opciones de filas por página
                               paginationModel={{
                                 page: pagination.page - 1, // 🔹 DataGrid usa base 0
                                 pageSize: pagination.pageSize,
                               }}
                               onPaginationModelChange={({ page, pageSize }) => {
-                                setPagination((prev) => ({ ...prev, page: page + 1, pageSize })); // 🔹 Reactualiza el estado de paginación
+                                if (pagination.page !== page + 1 || pagination.pageSize !== pageSize) {
+                                  setPagination((prev) => ({ ...prev, page: page + 1, pageSize }));
+                                }
                               }}
+                              
                               sortingMode="client"
                               sortModel={sortModel}
                               onSortModelChange={setSortModel}
                               loading={loading}
-                              getRowId={(row) => row.usuario_id} 
+                              getRowId={(row) => row.c_id} 
                             />
-                            {/* {openModal && <UsuarioModal open={openModal} onClose={handleCloseModal} onSave={handleSave} user={editingUser} />}  */}
-                          </div>
+                            {openModal && <UsuarioModal open={openModal} onClose={handleCloseModal} onSave={handleSave} user={editingUser} />} 
+                          </div> */}
 
           
 

@@ -89,8 +89,9 @@ export const columnsClientes = (edit, conversacion)=> [
   { field: "celular", headerName: "Teléfono", flex: 1, minWidth: 120 },
   { field: "tipo_codigo", headerName: "Tipo de Código", flex: 1, minWidth: 120},
   { field: "codigo_pago", headerName: "Código", flex: 1, minWidth: 120},
-  { field: "activo", headerName: "Estado del código", flex: 1, minWidth: 120},
+  //{ field: "activo", headerName: "Estado del código", flex: 1, minWidth: 120},
   { field: "fecha_asignacion", headerName: "Fecha de entrega", flex: 1, minWidth: 120},
+  { field: "pago_realizado", headerName: "Estado de Pago", flex: 1, minWidth: 120 },
   // {
   //   field: "estado",
   //   headerName: "Estado",
