@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-//import bigquery from "@/lib/bigquery";
+import bigquery from "@/lib/bigquery";
 
 
 
@@ -104,27 +104,27 @@ export async function GET(req) {
         }
       }
     });
-    // const contratos = clientesRiesgo.map((c) => c.codigo_pago[0]?.id_contrato).filter(Boolean);
+    const contratos = clientesRiesgo.map((c) => c.codigo_pago[0]?.id_contrato).filter(Boolean);
 
-    // if (contratos.length > 0) {
-    //   const query = `
-    //     SELECT Codigo_Asociado, Pago_cuota 
-    //     FROM \`peak-emitter-350713.FR_general.bd_fondos\`
-    //     WHERE Codigo_Asociado IN UNNEST(@contratos)
-    //   `;
-    //   const options = { query, params: { contratos } };
-    //   const [rows] = await bigquery.query(options);
+    if (contratos.length > 0) {
+      const query = `
+        SELECT Codigo_Asociado, Pago_cuota 
+        FROM \`peak-emitter-350713.FR_general.bd_fondos\`
+        WHERE Codigo_Asociado IN UNNEST(@contratos)
+      `;
+      const options = { query, params: { contratos } };
+      const [rows] = await bigquery.query(options);
 
-    //   const pagosMap = rows.reduce((acc, row) => {
-    //     acc[row.id_contrato] = row.Pago_cuota === "Si";
-    //     return acc;
-    //   }, {});
+      const pagosMap = rows.reduce((acc, row) => {
+        acc[row.id_contrato] = row.Pago_cuota === "Si";
+        return acc;
+      }, {});
 
-    //   clientesRiesgo.forEach((cliente) => {
-    //     const codigoPago = cliente.codigo_pago[0] || {};
-    //     cliente.codigoPago[0].pago_realizado = pagosMap[codigoPago.id_contrato] || false;
-    //   });
-    // }
+      clientesRiesgo.forEach((cliente) => {
+        const codigoPago = cliente.codigo_pago[0] || {};
+        codigoPago.pago_realizado = pagosMap[codigoPago.id_contrato] || false;
+      });
+    }
 
     const clientesTransformadosR = clientesRiesgo.map(cliente => {
       

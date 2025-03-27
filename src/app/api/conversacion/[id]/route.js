@@ -66,7 +66,7 @@ export async function GET(request, context) {
   if (!admin.apps.length) {
     const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
     admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),  
+      credential: admin.credential.cert(serviceAccount),    
     });
   }
     
@@ -92,19 +92,18 @@ export async function GET(request, context) {
         return NextResponse.json({ message: "Cliente no encontrado" }, { status: 404 });
       }
   
-      // Consultar Firestore: Obtener mensajes del cliente con id_bot = codigopago
+      /* // Consultar Firestore: Obtener mensajes del cliente con id_bot = codigopago
       const mensajesRef = db.collection("test")
         .where("celular", "==", cliente.celular)
-        .where("id_bot", "==", "codigopago"); 
+        .where("id_bot", "==", "codigopago");
         //.orderBy("fecha", "asc");
+
       console.log("celu:", cliente.celular);
 
       const mensajesSnap = await mensajesRef.get();
-      console.log("Cantidad de documentos encontrados:", mensajesSnap.size); 
 
-      if (mensajesSnap.empty) {
-        console.log("No se encontraron documentos en Firestore para este cliente.");
-      }
+      console.log("Cantidad de documentos encontrados:", mensajesSnap.size); 
+      
       
       const mensajes = mensajesSnap.docs.map(doc => {
         console.log("ID del documento:", doc.id); // Ver los IDs en la consola
@@ -128,8 +127,48 @@ export async function GET(request, context) {
               minute: "2-digit",
             })
           : "Fecha no disponible"
-      }));
+      })); */
       
+      // Consultar Firestore: Obtener mensajes del cliente con id_bot = codigopago
+  const mensajesRef = db.collection("test")
+  .where("celular", "==", cliente.celular)
+  .where("id_bot", "==", "codigopago");
+
+  console.log("📞 Buscando mensajes para celular:", cliente.celular);
+
+  const mensajesSnap = await mensajesRef.get();
+  console.log("📊 Cantidad de documentos encontrados:", mensajesSnap.size);
+
+  // Extraer datos y asegurar que `fecha` es un objeto Date
+  const mensajes = mensajesSnap.docs.map(doc => ({
+  id: doc.id,
+  ...doc.data(),
+  fecha: doc.data().fecha?._seconds 
+    ? new Date(doc.data().fecha._seconds * 1000) 
+    : null, // Si no tiene fecha, dejar null para filtrar después
+  }));
+
+  // Filtrar mensajes sin fecha y ordenar ascendentemente
+  const mensajesOrdenados = mensajes
+  .filter(msg => msg.fecha !== null) // Eliminar mensajes sin fecha
+  .sort((a, b) => a.fecha - b.fecha);
+
+  console.log("✅ Mensajes ordenados:", mensajesOrdenados);
+
+  // Mapear a formato final
+  const mensajesFormateados = mensajesOrdenados.map(msg => ({
+  ...msg,
+  fecha: msg.fecha
+    ? msg.fecha.toLocaleString("es-ES", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "Fecha no disponible",
+  }));
       console.log(mensajesFormateados); // Verifica el cambio
       
       

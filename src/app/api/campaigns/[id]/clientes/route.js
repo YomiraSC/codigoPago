@@ -73,7 +73,7 @@ export async function GET(req, context) {
           tipo_codigo: c.cliente.codigo_pago[0].tipo_codigo,
           codigo: c.cliente.codigo_pago[0].codigo,
           id_contrato: c.cliente.codigo_pago[0].id_contrato,
-          pago_realizado: c.cliente.codigo_pago[0].pago_realizado  ? "Pagado" : "No pagado",
+          pago_realizado: c.cliente.codigo_pago[0].pago_realizado  ? "Cancelado" : "Vigente",
         }
       : null, // Si no tiene código de pago, devuelve `null`
       })),
