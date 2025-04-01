@@ -41,7 +41,8 @@ export async function POST(req, context) {
 
             const { clientes, total } = await res.json();
             
-            console.log("Clientes recibidos:", clientes, "Total:", total);
+            console.log("Clientes recibidos cargar-clientes:", clientes, "Total:", total);
+            let clientesAgregados = [];
             for (const cliente of clientes) {    
                 let clienteCampanhaExistente = await prisma.cliente_campanha.findFirst({
                     where: {
@@ -53,12 +54,13 @@ export async function POST(req, context) {
                 if (!clienteCampanhaExistente) {
                     console.log(`🔹 Cliente ${cliente.cliente_id} no está en la campaña, agregando...`);
                     try {
-                        await prisma.cliente_campanha.create({
+                        const nuevoCliente = await prisma.cliente_campanha.create({
                             data: {
                                 cliente_id: cliente.cliente_id,
                                 campanha_id: campanhaId,
                             },
                         });
+                        clientesAgregados.push(nuevoCliente);
                         console.log(`✅ Cliente ${cliente.cliente_id} agregado a campaña ${campanhaId}`);
                     } catch (err) {
                         console.error("❌ Error al agregar cliente a campaña:", err);
@@ -67,15 +69,16 @@ export async function POST(req, context) {
                 } else {
                     console.log(`⚠️ Cliente ${cliente.cliente_id} ya está en la campaña, omitiendo...`);
                 }
-    
                 // clientesProcesados.push({
                 //     cliente_id: clienteId,
                 //     nombre: clienteExistente.nombre,
                 //     celular: clienteExistente.celular,
                 // });
             }
-            //setClientesRiesgo(clientes);
-            //setCR(total);
+            return NextResponse.json({
+              message: "Clientes agregados a la campaña exitosamente",
+              clientesAgregados,
+          });
           } catch (error) {
             console.error("❌ Error al obtener clientes en riesgo:", error);
         } 

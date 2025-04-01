@@ -69,13 +69,13 @@ export async function GET(req) {
 
     console.log("📌 Filtros aplicados:", filtros);
 
-    const clientesRiesgo = await prisma.cliente.findMany({
+    const clientesR = await prisma.cliente.findMany({
       where: {
         ...filtros,
         codigo_pago: {
-          some: { // Filtra clientes que tengan al menos un código con tipo "especial"
+          some: { // Filtra clientes que tengan al menos un código con tipo "recaudación"
             tipo_codigo: "Recaudación",
-            pago_realizado: false,
+            //pago_realizado: false,
           },
         },
       },
@@ -104,7 +104,7 @@ export async function GET(req) {
         }
       }
     });
-    const contratos = clientesRiesgo.map((c) => c.codigo_pago[0]?.id_contrato).filter(Boolean);
+    const contratos = clientesR.map((c) => c.codigo_pago[0]?.id_contrato).filter(Boolean);
 
     if (contratos.length > 0) {
       const query = `
@@ -120,12 +120,31 @@ export async function GET(req) {
         return acc;
       }, {});
 
-      clientesRiesgo.forEach((cliente) => {
-        const codigoPago = cliente.codigo_pago[0] || {};
-        codigoPago.pago_realizado = pagosMap[codigoPago.id_contrato] || false;
-      });
+      // 🔄 Actualizar la base de datos con los valores de pago_realizado obtenidos de BigQuery
+    for (const cliente of clientesR) {
+      if (cliente.codigo_pago.length > 0) {
+        const codigoPago = cliente.codigo_pago[0];
+        const nuevoEstadoPago = pagosMap[codigoPago.id_contrato] || false;
+
+        await prisma.codigo_pago.updateMany({
+          where: { id_contrato: codigoPago.id_contrato },
+          data: { pago_realizado: nuevoEstadoPago },
+        });
+
+        // También actualizamos en memoria para devolver la info correcta
+        codigoPago.pago_realizado = nuevoEstadoPago;
+      }
     }
 
+      clientesR.forEach((cliente) => {
+        //const codigoPago = cliente.codigo_pago[0] || {};
+        cliente.codigo_pago[0].pago_realizado = pagosMap[cliente.codigo_pago[0].id_contrato] || false;
+      });
+    }
+    const clientesRiesgo = clientesR.filter(
+      (c) => c.codigo_pago[0] && !c.codigo_pago[0].pago_realizado
+    );
+    
     const clientesTransformadosR = clientesRiesgo.map(cliente => {
       
       const codigoPago = cliente.codigo_pago.length > 0 ? cliente.codigo_pago[0] : {};  
@@ -144,7 +163,7 @@ export async function GET(req) {
 
     console.log(clientesTransformadosR);
 
-    console.log("✅ Clientes obtenidos:", clientesTransformadosR.length);
+    console.log("✅ Clientes obtenidos riesgo:", clientesTransformadosR.length);
     //console.log("🕵️‍♂️ Filtros usados:", filtros);
 
     // 🛠️ Obtener total de clientes

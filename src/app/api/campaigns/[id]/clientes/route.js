@@ -40,13 +40,29 @@ export async function GET(req, context) {
           codigo_pago: { 
             take: 1, // ✅ Solo el código de pago más reciente
             orderBy: { fecha_vencimiento: "desc" }, // ✅ Ordenado por fecha de vencimiento descendente
+            select: {
+              tipo_codigo: true,
+              codigo: true,
+              activo: true,
+              id_contrato: true,
+              fecha_asignacion: true,
+              pago_realizado: true,
+            }
           }
         }
       } },
       skip: (page - 1) * pageSize,
       take: pageSize,
     });
-
+    console.log(
+      "Clientes en campaña:",
+      clientes.map((c) => ({
+        id: c.cliente.cliente_id,
+        nombre: `${c.cliente.nombre} ${c.cliente.apellido}`,
+        codigo_pago: c.cliente.codigo_pago[0], // Esto imprimirá el array completo
+      }))
+    );
+    
     // Formatear la respuesta
     const response = {
       campanha_id: campanha.campanha_id,

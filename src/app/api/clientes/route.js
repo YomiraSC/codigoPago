@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import bigquery from "@/lib/bigquery";
 
 export async function GET(req) {
   try {
@@ -139,7 +140,43 @@ export async function GET(req) {
         }
       }
     });
+    const contratos = clientes.map((c) => c.codigo_pago[0]?.id_contrato).filter(Boolean);
 
+    if (contratos.length > 0) {
+      const query = `
+        SELECT Codigo_Asociado, Pago_cuota 
+        FROM \`peak-emitter-350713.FR_general.bd_fondos\`
+        WHERE Codigo_Asociado IN UNNEST(@contratos)
+      `;
+      const options = { query, params: { contratos } };
+      const [rows] = await bigquery.query(options);
+
+      const pagosMap = rows.reduce((acc, row) => {
+        acc[row.id_contrato] = row.Pago_cuota === "Si";
+        return acc;
+      }, {});
+        // 🔄 Actualizar la base de datos con los valores de pago_realizado obtenidos de BigQuery
+    for (const cliente of clientes) {
+      if (cliente.codigo_pago.length > 0) {
+        const codigoPago = cliente.codigo_pago[0];
+        const nuevoEstadoPago = pagosMap[codigoPago.id_contrato] || false;
+
+        await prisma.codigo_pago.updateMany({
+          where: { id_contrato: codigoPago.id_contrato },
+          data: { pago_realizado: nuevoEstadoPago },
+        });
+
+        // También actualizamos en memoria para devolver la info correcta
+        codigoPago.pago_realizado = nuevoEstadoPago;
+      }
+    }
+      clientes.forEach((cliente) => {
+        //const codigoPago = cliente.codigo_pago[0] || {};
+
+        cliente.codigo_pago[0].pago_realizado = pagosMap[cliente.codigo_pago[0].id_contrato] || false;
+        console.log("pago realizado?: ", cliente.codigo_pago[0].pago_realizado? "sí":"no", " pago couta: ", pagosMap[cliente.codigo_pago[0].id_contrato]? "si couta": "no couta");
+      });
+    }
     const clientesTransformados = clientes.map(cliente => {
       
       const codigoPago = cliente.codigo_pago.length > 0 ? cliente.codigo_pago[0] : {};  
