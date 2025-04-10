@@ -414,7 +414,7 @@ export async function POST(req, context) {
 
       if (campaign.template.parametro) {
         messagePayload.contentVariables = JSON.stringify({
-          1: cliente.nombre, // Variables dinámicas si el template lo requiere
+          1: "MAQUI+", // Variables dinámicas si el template lo requiere
         });
       }
 
