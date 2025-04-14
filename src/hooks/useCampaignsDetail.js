@@ -72,9 +72,9 @@ const useCampaignDetail = (id) => {
       await removeClientFromCampaign(id, clientId);
       fetchCampaignDetail();
     },
-    handleUploadClients: async () => {
+    handleUploadClients: async (file) => {
       console.log("se paso a handleUploadClients: ",id);
-      await uploadClients(id);
+      await uploadClients(id,file);
       fetchCampaignDetail();
     },
     handleSendCampaign: async () => {
