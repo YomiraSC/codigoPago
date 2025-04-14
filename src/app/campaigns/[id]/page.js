@@ -182,7 +182,7 @@ const CampaignDetailPage = () => {
             rows={campaignClients}
             totalRows={pagination.total}
             columns={[
-              { field: "id", headerName: "ID Cliente", flex: 1 },
+              //{ field: "id", headerName: "ID Cliente", flex: 1 },
               { field: "nombre", headerName: "Nombre", flex: 1 },
               { field: "celular", headerName: "Celular", flex: 1 },
               //{ field: "gestor", headerName: "Gestor", flex: 1 },

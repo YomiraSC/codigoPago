@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
 
-export async function PUT(req, { params }) {
+export async function PUT(req, context) {
     try {
+      const params = await context.params;
       const id = parseInt(params.id); // ✅ Convertimos el ID a número
       if (isNaN(id)) {
         return NextResponse.json({ error: "ID de campaña no válido" }, { status: 400 });
