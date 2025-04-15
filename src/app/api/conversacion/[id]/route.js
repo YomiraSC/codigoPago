@@ -130,11 +130,15 @@ export async function GET(request, context) {
       })); */
       
       // Consultar Firestore: Obtener mensajes del cliente con id_bot = codigopago
+    let celularFormatted = cliente.celular.trim();
+    if (!celularFormatted.startsWith("+51")) {
+      celularFormatted = `+51${celularFormatted}`;
+    }
   const mensajesRef = db.collection("test")
-  .where("celular", "==", cliente.celular)
+  .where("celular", "==", celularFormatted)
   .where("id_bot", "==", "codigopago");
 
-  console.log("📞 Buscando mensajes para celular:", cliente.celular);
+  console.log("📞 Buscando mensajes para celular:", celularFormatted);
 
   const mensajesSnap = await mensajesRef.get();
   console.log("📊 Cantidad de documentos encontrados:", mensajesSnap.size);

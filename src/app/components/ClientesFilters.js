@@ -63,14 +63,14 @@ export default function ClientesFilters({ filters, setFilters }) {
         <TextField
           select
           label="Tipo de código"
-          size="small"
+          size="small"  
           value={filters.tipoCod}
           onChange={(e) => setFilters({ ...filters, tipoCod: e.target.value })}
           sx={{ width: 150 }}
         >
-          <MenuItem value="recaudacion">Recaudación</MenuItem>
-          <MenuItem value="extranet">Extranet</MenuItem>
-          <MenuItem value="especial">Especial</MenuItem>
+          <MenuItem value="Recaudación">Recaudación</MenuItem>
+          <MenuItem value="Extranet">Extranet</MenuItem>
+          <MenuItem value="Especial">Especial</MenuItem>
         </TextField>
 
         <TextField

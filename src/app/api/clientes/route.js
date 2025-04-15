@@ -70,7 +70,7 @@ export async function GET(req) {
       filtros.codigo_pago = {
         some: {
           ...(activo && activo !== "Todos" && { activo: activo === "Activo" }),
-          ...(tipoCod && tipoCod !== "Todos" && { tipo_codigo: tipoCod }),
+          ...(tipoCod && tipoCod !== "Todos" && { tipo_codigo: { equals: tipoCod, mode: "insensitive" }  }),
           ...(fechaInicio && fechaFin && {
             fecha_asignacion: {
               gte: fechaInicio,
@@ -156,26 +156,26 @@ export async function GET(req) {
         return acc;
       }, {});
         // 🔄 Actualizar la base de datos con los valores de pago_realizado obtenidos de BigQuery
-    for (const cliente of clientes) {
-      if (cliente.codigo_pago.length > 0) {
-        const codigoPago = cliente.codigo_pago[0];
-        const nuevoEstadoPago = pagosMap[codigoPago.id_contrato] || false;
+      for (const cliente of clientes) {
+        if (cliente.codigo_pago && cliente.codigo_pago.length > 0) {
+          const codigoPago = cliente.codigo_pago[0];
+          const nuevoEstadoPago = pagosMap[codigoPago.id_contrato] || false;
 
-        await prisma.codigo_pago.updateMany({
-          where: { id_contrato: codigoPago.id_contrato },
-          data: { pago_realizado: nuevoEstadoPago },
-        });
+          await prisma.codigo_pago.updateMany({
+            where: { id_contrato: codigoPago.id_contrato },
+            data: { pago_realizado: nuevoEstadoPago },
+          });
 
-        // También actualizamos en memoria para devolver la info correcta
-        codigoPago.pago_realizado = nuevoEstadoPago;
+          // También actualizamos en memoria para devolver la info correcta
+          codigoPago.pago_realizado = nuevoEstadoPago;
+        }
       }
-    }
-      clientes.forEach((cliente) => {
-        //const codigoPago = cliente.codigo_pago[0] || {};
+      // clientes.forEach((cliente) => {
+      //   //const codigoPago = cliente.codigo_pago[0] || {};
 
-        cliente.codigo_pago[0].pago_realizado = pagosMap[cliente.codigo_pago[0].id_contrato] || false;
-        console.log("pago realizado?: ", cliente.codigo_pago[0].pago_realizado? "sí":"no", " pago couta: ", pagosMap[cliente.codigo_pago[0].id_contrato]? "si couta": "no couta");
-      });
+      //   cliente.codigo_pago[0].pago_realizado = pagosMap[cliente.codigo_pago[0].id_contrato] || false;
+      //   console.log("pago realizado?: ", cliente.codigo_pago[0].pago_realizado? "sí":"no", " pago couta: ", pagosMap[cliente.codigo_pago[0].id_contrato]? "si couta": "no couta");
+      // });
     }
     const clientesTransformados = clientes.map(cliente => {
       
