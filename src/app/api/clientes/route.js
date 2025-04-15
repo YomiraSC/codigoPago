@@ -69,7 +69,7 @@ export async function GET(req) {
     if ((activo && activo !== "Todos") || (tipoCod && tipoCod !== "Todos") || (fechaInicio && fechaFin)) {
       filtros.codigo_pago = {
         some: {
-          ...(activo && activo !== "Todos" && { activo: activo === "Activo" }),
+          ...(activo && activo !== "Todos" && { pago_realizado: activo === "Cancelado" }),
           ...(tipoCod && tipoCod !== "Todos" && { tipo_codigo: { equals: tipoCod, mode: "insensitive" }  }),
           ...(fechaInicio && fechaFin && {
             fecha_asignacion: {

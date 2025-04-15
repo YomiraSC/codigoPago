@@ -81,8 +81,8 @@ export default function ClientesFilters({ filters, setFilters }) {
           onChange={(e) => setFilters({ ...filters, activo: e.target.value })}
           sx={{ width: 150 }}
         >
-          <MenuItem value="Activo">Activo</MenuItem>
-          <MenuItem value="Vencido">Vencido</MenuItem>
+          <MenuItem value="Vigente">Vigente</MenuItem>
+          <MenuItem value="Cancelado">Cancelado</MenuItem>
         </TextField>
       </div>
       <Typography variant="h4" gutterBottom sx={{ color: "#1A202C" }}>
