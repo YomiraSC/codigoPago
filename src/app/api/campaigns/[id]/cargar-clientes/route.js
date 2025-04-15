@@ -204,7 +204,86 @@ require("dotenv").config();
 //         return NextResponse.json({ error: "Error al procesar el archivo" }, { status: 500 });
 //     }
 // }
-export async function POST(req, context) { 
+// export async function POST(req, context) { 
+//   try {
+//     const params = await context.params;
+//     const campanhaId = Number(params.id);
+//     if (isNaN(campanhaId)) {
+//       console.error("❌ Error: ID de campaña no válido");
+//       return NextResponse.json({ error: "ID de campaña no válido" }, { status: 400 });
+//     }
+    
+//     const formData = await req.formData();
+//     const file = formData.get("archivo");
+//     if (!file) {
+//       return NextResponse.json({ error: "No se proporcionó ningún archivo" }, { status: 400 });
+//     }
+    
+//     const buffer = Buffer.from(await file.arrayBuffer());
+//     let clientes = [];
+    
+//     // Soporta archivos Excel (xls, xlsx)
+//     if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) {
+//       const workbook = XLSX.read(buffer, { type: "buffer" });
+//       const sheetName = workbook.SheetNames[0];
+//       const sheet = workbook.Sheets[sheetName];
+//       clientes = XLSX.utils.sheet_to_json(sheet);
+//     } else {
+//       return NextResponse.json({ error: "Formato de archivo no válido. Debe ser .xlsx o .xls" }, { status: 400 });
+//     }
+    
+//     if (clientes.length === 0) {
+//       return NextResponse.json({ error: "El archivo está vacío o no tiene formato válido" }, { status: 400 });
+//     }
+    
+//     const clientesProcesados = [];
+    
+//     // Insertar cada fila en la tabla temporal campaña
+//     // Se usa un bucle for para ejecutar las inserciones de manera secuencial.
+//     // (Si el volumen es muy alto, se podría transformar a paralelismo controlado con Promise.all y p-limit).
+//     for (const fila of clientes) {
+//       let { Numero, Nombre } = fila;
+//       if (!Numero || !Nombre) {
+//         console.warn("❗ Se omite fila por datos faltantes:", fila);
+//         continue;
+//       }
+      
+//       // Formatear el número (agregar prefijo +51 si no lo tiene)
+//       Numero = String(Numero).trim();
+//       if (!Numero.startsWith("+51")) {
+//         Numero = `+51${Numero}`;
+//       }
+      
+//       // Insertar en la tabla temporal
+//       try {
+//         const registro = await prisma.campanha_temporal.create({
+//           data: {
+//             campanha_id: campanhaId,
+//             celular: Numero,
+//             nombre: Nombre,
+//           },
+//         });
+//         clientesProcesados.push(registro);
+//       } catch (err) {
+//         console.error("❌ Error al insertar registro en campañaTemporal:", err);
+//         // Puedes decidir si continuar o detener la carga
+//       }
+//     }
+    
+//     return NextResponse.json({
+//       message: `Clientes cargados con éxito para la campaña ${campanhaId}`,
+//       clientes: clientesProcesados,
+//     });
+    
+//   } catch (error) {
+//     console.error("❌ Error al cargar clientes desde Excel:", error);
+//     return NextResponse.json({ error: "Error al procesar el archivo" }, { status: 500 });
+//   }
+// }
+
+//INSERTAR CON CREATE MANY
+
+export async function POST(req, context) {
   try {
     const params = await context.params;
     const campanhaId = Number(params.id);
@@ -222,7 +301,6 @@ export async function POST(req, context) {
     const buffer = Buffer.from(await file.arrayBuffer());
     let clientes = [];
     
-    // Soporta archivos Excel (xls, xlsx)
     if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) {
       const workbook = XLSX.read(buffer, { type: "buffer" });
       const sheetName = workbook.SheetNames[0];
@@ -236,43 +314,36 @@ export async function POST(req, context) {
       return NextResponse.json({ error: "El archivo está vacío o no tiene formato válido" }, { status: 400 });
     }
     
-    const clientesProcesados = [];
-    
-    // Insertar cada fila en la tabla temporal campaña
-    // Se usa un bucle for para ejecutar las inserciones de manera secuencial.
-    // (Si el volumen es muy alto, se podría transformar a paralelismo controlado con Promise.all y p-limit).
-    for (const fila of clientes) {
+    // Transformar cada fila en un objeto para inserción y omitir filas incompletas
+    const dataToInsert = clientes.reduce((acumulador, fila) => {
       let { Numero, Nombre } = fila;
       if (!Numero || !Nombre) {
         console.warn("❗ Se omite fila por datos faltantes:", fila);
-        continue;
+        return acumulador;
       }
       
-      // Formatear el número (agregar prefijo +51 si no lo tiene)
       Numero = String(Numero).trim();
       if (!Numero.startsWith("+51")) {
         Numero = `+51${Numero}`;
       }
       
-      // Insertar en la tabla temporal
-      try {
-        const registro = await prisma.campanha_temporal.create({
-          data: {
-            campanha_id: campanhaId,
-            celular: Numero,
-            nombre: Nombre,
-          },
-        });
-        clientesProcesados.push(registro);
-      } catch (err) {
-        console.error("❌ Error al insertar registro en campañaTemporal:", err);
-        // Puedes decidir si continuar o detener la carga
-      }
-    }
+      acumulador.push({
+        campanha_id: campanhaId,
+        celular: Numero,
+        nombre: Nombre,
+      });
+      return acumulador;
+    }, []);
+    
+    // Insertar todos los registros de una sola vez
+    const result = await prisma.campanha_temporal.createMany({
+      data: dataToInsert,
+      skipDuplicates: true, // Opcional: omite registros duplicados si aplica
+    });
     
     return NextResponse.json({
       message: `Clientes cargados con éxito para la campaña ${campanhaId}`,
-      clientes: clientesProcesados,
+      cantidadInsertados: result.count,
     });
     
   } catch (error) {
