@@ -168,7 +168,7 @@ export async function GET(req) {
 
     // 🛠️ Obtener total de clientes
     const totalClientes = await prisma.cliente.count({where: {
-      ...filtros,
+      ...filtrosNuevos,
       codigo_pago: {
         some: { // Filtra clientes que tengan al menos un código con tipo "especial"
           tipo_codigo: "Recaudación",

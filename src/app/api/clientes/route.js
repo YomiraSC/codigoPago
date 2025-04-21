@@ -103,7 +103,7 @@ export async function GET(req) {
       };
     } */
 
-    console.log("📌 Filtros aplicados:", filtros);
+    console.log("📌 Filtros aplicados clientes:", filtros);
 
     // 🛠️ Obtener clientes con Prisma
     // const clientes = await prisma.cliente.findMany({

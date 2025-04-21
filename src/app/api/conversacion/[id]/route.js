@@ -74,23 +74,57 @@ export async function GET(request, context) {
 
   export async function GET(request, context) {
     try {
+      let celularFormatted;
       const params = await context.params;
       const { id } = params;//se obtiene de clientesService
+
+      let registro;            // contendrá o bien el cliente normal o el “nuevo”
+      let esTelefono = false
+
       console.log("id es: ",id);
       // Buscar cliente en Prisma (MySQL/PostgreSQL)
-      const cliente = await prisma.cliente.findUnique({
-        where: { cliente_id: parseInt(id) },
-        select: {
-          cliente_id: true,
-          nombre: true,
-          apellido: true,
-          celular: true,
-        },
-      });
-  
-      if (!cliente) {
-        return NextResponse.json({ message: "Cliente no encontrado" }, { status: 404 });
+      if(/^\d+$/.test(id)){
+        const cliente = await prisma.cliente.findUnique({
+          where: { cliente_id: parseInt(id) },
+          select: {
+            cliente_id: true,
+            nombre: true,
+            apellido: true,
+            celular: true,
+          },
+        });
+    
+        if (!cliente) {
+          return NextResponse.json({ message: "Cliente no encontrado" }, { status: 404 });
+        }
+        celularFormatted = cliente.celular.trim();
+        if (!celularFormatted.startsWith("+51")) {
+          celularFormatted = `+51${celularFormatted}`;
+        }
+        registro=cliente; 
+        esTelefono = false;
+      }else if (/^\+51\d+$/.test(id)) {
+        celularFormatted=id;
+        if (!celularFormatted.startsWith("+51")) {
+          celularFormatted = `+51${celularFormatted}`;
+        }
+        const nuevo = await prisma.campanha_temporal.findFirst({
+          where: { celular: id },
+          select: {
+            nombre: true,
+            celular: true,
+          },
+        });
+        registro=nuevo;
+        esTelefono = true;
+      // 3️⃣ Cualquier otro formato, devolvemos error
+      } else {
+        return NextResponse.json(
+          { message: "Formato de ID inválido" },
+          { status: 400 }
+        );
       }
+      
   
       /* // Consultar Firestore: Obtener mensajes del cliente con id_bot = codigopago
       const mensajesRef = db.collection("test")
@@ -130,13 +164,12 @@ export async function GET(request, context) {
       })); */
       
       // Consultar Firestore: Obtener mensajes del cliente con id_bot = codigopago
-    let celularFormatted = cliente.celular.trim();
-    if (!celularFormatted.startsWith("+51")) {
-      celularFormatted = `+51${celularFormatted}`;
-    }
+    
   const mensajesRef = db.collection("test")
   .where("celular", "==", celularFormatted)
-  .where("id_bot", "==", "codigopago");
+  .where("id_bot", "==", "codigopago")
+  .orderBy("fecha", "asc");      // ← aquí
+
 
   console.log("📞 Buscando mensajes para celular:", celularFormatted);
 
@@ -153,14 +186,14 @@ export async function GET(request, context) {
   }));
 
   // Filtrar mensajes sin fecha y ordenar ascendentemente
-  const mensajesOrdenados = mensajes
-  .filter(msg => msg.fecha !== null) // Eliminar mensajes sin fecha
-  .sort((a, b) => a.fecha - b.fecha);
+  // const mensajesOrdenados = mensajes
+  // .filter(msg => msg.fecha !== null) // Eliminar mensajes sin fecha
+  // .sort((a, b) => a.fecha - b.fecha);
 
-  console.log("✅ Mensajes ordenados:", mensajesOrdenados);
+  //console.log("✅ Mensajes ordenados:", mensajesOrdenados);
 
   // Mapear a formato final
-  const mensajesFormateados = mensajesOrdenados.map(msg => ({
+  const mensajesFormateados = mensajes.map(msg => ({
   ...msg,
   fecha: msg.fecha
     ? msg.fecha.toLocaleString("es-ES", {
@@ -174,16 +207,33 @@ export async function GET(request, context) {
     : "Fecha no disponible",
   }));
       console.log(mensajesFormateados); // Verifica el cambio
+      const clientePayload = esTelefono
+      ? {
+          // en el caso del “nuevo” sólo tenemos nombre y celular
+          cliente_id:     null,
+          nombreCompleto: registro.nombre,
+          celular:        registro.celular,
+        }
+      : {
+          // cliente normal
+          cliente_id:     registro.cliente_id,
+          nombreCompleto: `${registro.nombre} ${registro.apellido}`,
+          celular:        registro.celular,
+        };
+
+    return NextResponse.json({
+      cliente:        clientePayload,
+      conversaciones: mensajesFormateados,
+    });
       
-      
-      return NextResponse.json({
-        cliente: {
-          cliente_id: cliente.id,
-          nombreCompleto: `${cliente.nombre} ${cliente.apellido}`,
-          celular: cliente.celular,
-        },
-        conversaciones: mensajesFormateados,
-      });
+      // return NextResponse.json({
+      //   cliente: {
+      //     cliente_id: cliente.id,
+      //     nombreCompleto: `${cliente.nombre} ${cliente.apellido}`,
+      //     celular: cliente.celular,
+      //   },
+      //   conversaciones: mensajesFormateados,
+      // });
     } catch (error) {
       console.error("Error al obtener conversaciones del cliente:", error);
       return NextResponse.json(
