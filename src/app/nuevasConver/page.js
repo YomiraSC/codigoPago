@@ -34,7 +34,9 @@ export default function NCPage() {
             search:    filters.search       || '',
             // si tienes más filtros: activo: filters.activo || 'Todos', etc.
             });
-
+            if (filters.responded && filters.responded !== "todos") {
+              params.append("responded", filters.responded);
+            }
             const res = await fetch(`/api/nuevasConver?${params.toString()}`);
             const { clientes, total } = await res.json();
 
@@ -53,7 +55,8 @@ export default function NCPage() {
         pagination.pageSize,
         sortModel[0]?.field,
         sortModel[0]?.sort,
-        filters.search   // 🔔 añadimos la dependencia de búsqueda
+        filters.search,   // 🔔 añadimos la dependencia de búsqueda
+        filters.responded
         // si añades otros filtros: filters.activo, filters.tipoCod, etc.
     ]);
   const columns = [

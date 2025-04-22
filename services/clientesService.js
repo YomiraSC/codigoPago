@@ -7,6 +7,7 @@ export const fetchClientes = async ({ page = 1, pageSize = 10, filters = {}, sor
       pageSize,
       search: filters.search || "",
       activo: filters.activo !== "Todos" ? filters.activo : undefined,
+      responded: filters.responded !== "Todos" ? filters.responded : undefined,
       tipoCod: filters.tipoCod !== "Todos" ? filters.tipoCod : undefined,
       bound: filters.bound !== "Todos" ? filters.bound : undefined,
       fechaInicio: filters.fechaInicio || undefined,

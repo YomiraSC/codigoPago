@@ -59,7 +59,19 @@ export default function NuevosFilters({ filters, setFilters }) {
           value={filters.search}
           onChange={(e) => setFilters({ ...filters, search: e.target.value })}
         />
-
+        <TextField
+          select
+          label="Estado Conversación"
+          size="small"  
+          value={filters.responded}
+          onChange={(e) => setFilters({ ...filters, responded: e.target.value })}
+          sx={{ width: 150 }}
+        >
+          <MenuItem value="todos">Todos</MenuItem>
+          <MenuItem value="respondieron">Respondieron</MenuItem>
+          <MenuItem value="no respondieron">No respondieron</MenuItem>
+        </TextField>
+      
       </div>
       <Typography variant="h4" gutterBottom sx={{ color: "#1A202C" }}>
         Fecha
@@ -115,6 +127,7 @@ export default function NuevosFilters({ filters, setFilters }) {
             setFilters({
               search: "",
               activo: "Todos",
+              responded: "Todos",
               tipoCod: "Todos",
               fechaInicio: "",
               fechaFin: "",

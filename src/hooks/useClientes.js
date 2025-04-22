@@ -15,6 +15,7 @@ export function useClientes() {
   const [filters, setFilters] = useState({
     search: "",
     activo: "Todos",
+    responded: "Todos",
     tipoCod: "Todos",
     bound: "Todos",
     fechaInicio: "",
