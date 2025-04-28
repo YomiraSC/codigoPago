@@ -73,11 +73,11 @@ export default function NuevosFilters({ filters, setFilters }) {
         </TextField>
       
       </div>
-      <Typography variant="h4" gutterBottom sx={{ color: "#1A202C" }}>
+      {/* <Typography variant="h4" gutterBottom sx={{ color: "#1A202C" }}>
         Fecha
-      </Typography>
+      </Typography> */}
       {/* Segunda Sección */}
-      <div className="flex flex-wrap gap-4 items-center">
+      {/* <div className="flex flex-wrap gap-4 items-center">
         <FormControl size="small" sx={{ width: 200 }}>
           <InputLabel>Rango de Fechas</InputLabel>
           <Select value={preset} onChange={handlePresetChange}>
@@ -116,8 +116,8 @@ export default function NuevosFilters({ filters, setFilters }) {
               format="dd/MM/yyyy"
             />
           </>
-        )}
-
+        )} */}
+        <div>
         <Button
           variant="contained"
           onClick={() => {

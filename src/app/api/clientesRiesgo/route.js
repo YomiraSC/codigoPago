@@ -39,9 +39,9 @@ export async function GET(req) {
       const searchLower = search.toLowerCase();
   
       filtros.OR = [
-        { nombre: { contains: searchLower } },
-        { apellido: {contains: searchLower}},
-        { documento_identidad: { contains: searchLower } },
+        { nombre: { contains: searchLower, mode: "insensitive" } },
+        { apellido: { contains: searchLower, mode: "insensitive" } },
+        { documento_identidad: { contains: searchLower, mode: "insensitive" } },
       ];
     }
 
