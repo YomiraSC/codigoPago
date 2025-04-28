@@ -343,7 +343,6 @@
 //     total
 //   });
 // }
-
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import admin from "firebase-admin";
@@ -373,7 +372,7 @@ export async function GET(req) {
       ];
     }
 
-    // 1️⃣ Buscar registros aplicando solo el filtro de búsqueda
+    // 1️⃣ Buscar registros aplicando sólo el filtro de búsqueda
     let registros = await prisma.campanha_temporal.findMany({
       where: filtrosNuevos,
       orderBy: { [orderBy]: order },
@@ -388,14 +387,9 @@ export async function GET(req) {
       return true;
     });
 
-    // 3️⃣ Paginación temprana para optimizar
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    let registrosPaginados = registros.slice(start, end);
-
-    // 4️⃣ Si se necesita verificar "responded", preparar set de celulares que respondieron
+    // 3️⃣ Si se necesita verificar "responded", hacerlo antes de paginar
     if (responded && responded !== "todos") {
-      // Obtener de Firestore todos los celulares que respondieron
+      // Obtener celulares que respondieron
       const snapshot = await db
         .collection("test")
         .where("id_bot", "==", "codigopago")
@@ -407,19 +401,25 @@ export async function GET(req) {
         celularesRespondidos.add(doc.data().celular);
       });
 
-      // Agregar campo responded a cada cliente paginado
-      registrosPaginados = registrosPaginados.map(c => {
+      // Marcar responded a todos los registros
+      registros = registros.map(c => {
         const celularFmt = c.celular.startsWith("+51") ? c.celular : `+51${c.celular}`;
         return { ...c, responded: celularesRespondidos.has(celularFmt) };
       });
 
       // Filtrar según responded
       if (responded === "respondieron") {
-        registrosPaginados = registrosPaginados.filter(c => c.responded);
+        registros = registros.filter(c => c.responded);
       } else if (responded === "no respondieron") {
-        registrosPaginados = registrosPaginados.filter(c => !c.responded);
+        registros = registros.filter(c => !c.responded);
       }
     }
+
+    // 4️⃣ Paginación ahora SÍ sobre registros ya filtrados
+    const total = registros.length;
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+    const registrosPaginados = registros.slice(start, end);
 
     // 5️⃣ Respuesta
     return NextResponse.json({
@@ -427,7 +427,7 @@ export async function GET(req) {
         ...c,
         c_cel: c.celular,
       })),
-      total: registros.length, // el total sigue siendo todos los registros después de filtros iniciales
+      total
     });
 
   } catch (error) {
