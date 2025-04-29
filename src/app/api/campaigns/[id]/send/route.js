@@ -640,6 +640,16 @@ export async function POST(req, context) {
         const message = await client.messages.create(messagePayload);
         console.log(`Mensaje enviado a ${clientItem.celular}: ${message.sid}`);
 
+        //guardar el envío para ver cuantos se envían
+        await prisma.campanha_temporal.update({
+          where: { celular: clientItem.celular, campanha_id: campanhaId},
+          data: {
+            twilio_sid: message.sid,
+            estado_envio: message.status,
+            error_codigo: null,
+            error_mensaje: null,
+          },
+        });
         // Guardar el mensaje en Firestore
         await db.collection("test").add({
           celular: clientItem.celular,
@@ -652,13 +662,31 @@ export async function POST(req, context) {
 
         return { to: clientItem.celular, status: "sent", sid: message.sid };
       } catch (error) {
+        // Registrar el fallo
+        await prisma.campanha_temporal.update({
+          where: { celular: clientItem.celular, campanha_id: campanhaId },
+          data: {
+            estado_envio: "failed",
+            error_codigo: error.code?.toString(),
+            error_mensaje: error.message,
+          },
+        });
+
         console.error(`Error al enviar mensaje a ${clientItem.celular}:`, error);
         return { to: clientItem.celular, status: "failed", error: error.message };
       }
     });
-    
-    const sentMessages = await Promise.all(sendMessagePromises);
+
+    //con guardado de estado de mensaje
+    const results = await Promise.allSettled(sendMessagePromises);
+    const sentMessages = results.map((res) =>
+      res.status === "fulfilled" ? res.value : { status: "error", error: res.reason }
+    );
     return NextResponse.json({ success: true, sentMessages });
+
+    //sin guardar estado de mensaje 
+    // const sentMessages = await Promise.all(sendMessagePromises);
+    // return NextResponse.json({ success: true, sentMessages });
     
   } catch (error) {
     console.error("Error en el envío de mensajes:", error);

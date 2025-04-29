@@ -77,18 +77,51 @@ const useCampaignDetail = (id) => {
       await uploadClients(id,file);
       fetchCampaignDetail();
     },
+    // handleSendCampaign: async () => {
+    //   try {
+    //     await sendCampaignMessages(id);
+    //     setSnackbarMessage("Mensajes enviados correctamente!");
+    //     setSnackbarSeverity("success");
+    //     setSnackbarOpen(true);
+    //   } catch (err) {
+        
+    //     setSnackbarMessage("Hubo un error al enviar los mensajes.");
+    //     setSnackbarSeverity("error");
+    //     setSnackbarOpen(true);
+    //   }
+    // },
+    //para que muestre los que fallaron
     handleSendCampaign: async () => {
       try {
-        await sendCampaignMessages(id);
-        setSnackbarMessage("Mensajes enviados correctamente!");
-        setSnackbarSeverity("success");
+        const { sentMessages } = await sendCampaignMessages(id);
+    
+        const fallidos = sentMessages.filter(m => m.status === "error");
+        
+        if (fallidos.length > 0) {
+          const numerosFallidos = fallidos.map(f => f.to).join(", ");
+          setSnackbarMessage(`Se enviaron algunos mensajes, pero fallaron estos números: ${numerosFallidos}`);
+          setSnackbarSeverity("warning");
+        } else {
+          setSnackbarMessage("Mensajes enviados correctamente!");
+          setSnackbarSeverity("success");
+        }
+    
         setSnackbarOpen(true);
       } catch (err) {
-        setSnackbarMessage("Hubo un error al enviar los mensajes.");
+        // Manejar error más crítico, por ejemplo, si ni siquiera se pudo ejecutar la función
+        const mensajesFallidos = err?.response?.data?.sentMessages?.filter(m => m.status === "error") || [];
+        const numeros = mensajesFallidos.map(m => m.to).join(", ");
+    
+        const mensaje = mensajesFallidos.length
+          ? `Error al enviar mensajes. Fallaron estos números: ${numeros}`
+          : "Hubo un error al enviar los mensajes.";
+    
+        setSnackbarMessage(mensaje);
         setSnackbarSeverity("error");
         setSnackbarOpen(true);
       }
     },
+    
     snackbar: (
       <Snackbar 
         open={snackbarOpen} 

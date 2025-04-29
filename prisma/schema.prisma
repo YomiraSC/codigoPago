@@ -40,12 +40,16 @@ model campanha {
 }
 
 model campanha_temporal {
-  id          Int      @id @default(autoincrement())
-  campanha_id Int
-  celular     String   @db.VarChar(50)
-  nombre      String   @db.VarChar(255)
-  creado_en   DateTime @default(now()) @db.Timestamptz(6)
-  campanha    campanha @relation(fields: [campanha_id], references: [campanha_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_campagna")
+  id            Int      @id @default(autoincrement())
+  campanha_id   Int
+  celular       String   @db.VarChar(50)
+  nombre        String   @db.VarChar(255)
+  creado_en     DateTime @default(now()) @db.Timestamptz(6)
+  twilio_sid    String?  @db.VarChar(100)
+  estado_envio  String?  @db.VarChar(50)
+  error_codigo  String?  @db.VarChar(20)
+  error_mensaje String?  @db.VarChar(255)
+  campanha      campanha @relation(fields: [campanha_id], references: [campanha_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_campagna")
 }
 
 model cita {
@@ -117,7 +121,7 @@ model codigo_pago {
   pago_realizado    Boolean?  @default(false)
   fecha_pago        DateTime? @db.Date
   numero_cuota      Int?
-  id_contrato       String?   @unique @db.VarChar(50)
+  id_contrato       String?   @db.VarChar(50)
   cliente           cliente?  @relation(fields: [cliente_id], references: [cliente_id], onDelete: Cascade, onUpdate: NoAction, map: "codigo_pago_fk_cliente")
 }
 
