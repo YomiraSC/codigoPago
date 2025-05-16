@@ -24,6 +24,7 @@ const CampaignsPage = () => {
     handleUploadClients,
     loading,
     error,
+    handleDeleteCampaign,
   } = useCampaigns();
 
   return (
@@ -100,7 +101,7 @@ const CampaignsPage = () => {
         <Box width="100%" sx={{ overflowX: "auto" }}>
           <CustomDataGrid
             rows={campaigns}
-            columns={CAMPAIGN_COLUMNS(handleEdit)}
+            columns={CAMPAIGN_COLUMNS(handleEdit,handleDeleteCampaign)}
             totalRows={pagination.total}
             pagination={pagination}
             setPagination={setPagination}

@@ -23,6 +23,9 @@ export const CAMPAIGN_COLUMNS = (onEdit) => [
 import ActionButton from "@/app/components/ActionButton";
 import { useRouter } from "next/navigation";
 import { Box } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 export const CAMPAIGN_COLUMNS = (onEdit, onDelete) => [
   {
