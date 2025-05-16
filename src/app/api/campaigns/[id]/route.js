@@ -37,3 +37,18 @@ export async function PUT(req, context) {
       return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
     }
   }
+
+  // 📌 Eliminar campaña
+export async function DELETE(req,{params}) {
+    try {
+        const { id } = params;
+
+        await prisma.cliente_campanha.deleteMany({ where: { campanha_id: parseInt(id) } });
+        await prisma.campanha.delete({ where: { campanha_id: parseInt(id) } });
+
+        return NextResponse.json({ message: "Campaña eliminada" });
+    } catch (error) {
+        console.error(error);
+        return NextResponse.json({ error: "Error al eliminar la campaña" }, { status: 500 });
+    }
+}

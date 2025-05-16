@@ -24,7 +24,9 @@ const useCampaigns = () => {
     setLoading(true);
     setError(null);
     try {
-      const { campaigns, totalCount } = await getCampaigns();
+      //const { campaigns, totalCount } = await getCampaigns();
+      const { campaigns, totalCount } = await getCampaigns(pagination.page, pagination.pageSize);
+
       //setCampaigns(campaigns || []); // 🔹 Evita undefined
       // setPagination((prev) => ({ ...prev, total: totalCount || 0 }));
       const formattedCampaigns = campaigns.map((campaign) => ({
