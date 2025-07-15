@@ -21,6 +21,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import LogoutIcon from "@mui/icons-material/Logout";
 import CampaignIcon from "@mui/icons-material/Campaign";
 import PeopleIcon from "@mui/icons-material/People";
+import SendIcon from '@mui/icons-material/Send';
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
@@ -235,7 +236,20 @@ export default function Layout({ children }) {
           </ListItemIcon>
           <ListItemText primary="Campañas" />
         </ListItem> 
-        
+        <ListItem
+          button="true"
+          onClick={() => router.push("/personalizado")}
+          sx={{
+            "&:hover": { bgcolor: "#2D3748" },
+            px: 3,
+            py: 1.5,
+          }}
+        >
+          <ListItemIcon sx={{ color: "#fff" }}>
+            <SendIcon />
+          </ListItemIcon>
+          <ListItemText primary="Envío" />
+        </ListItem> 
         {session?.user?.rol_id === 1 && (
         <ListItem
           button="true"
@@ -245,6 +259,7 @@ export default function Layout({ children }) {
             px: 3,
             py: 1.5,
           }}
+          
         >
           <ListItemIcon sx={{ color: "#fff" }}>
             <PeopleIcon />

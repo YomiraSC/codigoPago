@@ -43,7 +43,7 @@ model campanha_temporal {
   id            Int      @id @default(autoincrement())
   campanha_id   Int
   celular       String   @db.VarChar(50)
-  nombre        String   @db.VarChar(255)
+  nombre        String?  @db.VarChar(255)
   creado_en     DateTime @default(now()) @db.Timestamptz(6)
   twilio_sid    String?  @db.VarChar(100)
   estado_envio  String?  @db.VarChar(50)
