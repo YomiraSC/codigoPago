@@ -39,6 +39,7 @@ export default function CustomDataGrid({
   setPagination,
   sortModel,
   setSortModel,
+  getRowId,
 }) {
   // ¿Tenemos paginación server? Sólo si vienen estos props definidos
   const serverPaging = Boolean(pagination && setPagination);
@@ -49,7 +50,7 @@ export default function CustomDataGrid({
       <DataGrid
         rows={rows}
         columns={columns}
-
+        {...(getRowId ? { getRowId } : {})}
         // paginación según modo
         pagination={serverPaging}
         paginationMode={serverPaging ? "server" : "client"}

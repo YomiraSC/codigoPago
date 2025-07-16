@@ -23,6 +23,9 @@ const CampaignDetailPage = () => {
   const [clients, setClients] = useState([]);
   const [loadingUpload, setLoadingUpload] = useState(false);
   const fileInputRef = useRef(null);
+  const [noPagados, setNoPagados] = useState([]);
+  const [paginationNP, setPaginationNP] = useState({ page: 1, pageSize: 10, total: 0 });
+  const [showReminder, setShowReminder] = useState(false);
   
   const {filters,setFilters} = useClientes();
     const [clientesRiesgo, setClientesRiesgo] = useState([]);
@@ -32,6 +35,58 @@ const CampaignDetailPage = () => {
     //const [pagination, setPagination] = useState({ page: 1, pageSize: 10 });
     const [sortModel, setSortModel] = useState([]);  
     const [totalCR, setCR] = useState(0);
+  // const loadNoPagados = async () => {
+  //   const { page, pageSize } = paginationNP;
+  //   const res = await fetch(`/api/campaigns/${campaignId}/no-pagados?page=${page}&pageSize=${pageSize}`);
+  //   const data = await res.json();
+  //   if (!data.error) {
+  //     setNoPagados(data.clientes);
+  //     setPaginationNP(prev => ({ ...prev, total: data.pagination.total }));
+  //     setShowReminder(true);
+  //   }
+  // };
+  const loadNoPagados = async () => {
+    // 1) Extrae page y pageSize de tu estado de paginación
+    const { page, pageSize } = paginationNP;
+
+    // 2) Úsalos en la URL
+    const res = await fetch(
+      `/api/campaigns/${campaignId}/no-pagados?page=${page}&pageSize=${pageSize}`
+    );
+    const { clientes, pagination } = await res.json();
+    // FILTRO: sólo la primera ocurrencia de cada clienteId
+    const seenCel = new Set();
+    const unicos = clientes.filter(c => {
+      if (seenCel.has(c.celular)) return false;
+      seenCel.add(c.celular);
+      return true;
+    });
+    // 3) Mapea para añadir un id único (por ejemplo, clienteId)
+    const filasConId = unicos.map((c, idx) => ({
+      id: c.cliente_id,      // por ejemplo: el PK de tu cliente
+      nombre: c.nombre,
+      celular: c.celular,
+      // …cualquier otro campo
+    }));
+
+    setNoPagados(filasConId);
+    setPaginationNP(paginationNP);
+    setShowReminder(true);
+};
+
+
+const handleSendReminder = async () => {
+  try {
+    const res = await fetch(`/api/campaigns/${campaignId}/send-recordatorio`, { method: "POST" });
+    const data = await res.json();
+    if (data.success) {
+      // muévete a un snackbar o alerta
+      console.log("Recordatorios enviados:", data.sentMessages);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   const {
     campaign,
@@ -167,6 +222,25 @@ const CampaignDetailPage = () => {
             </Button>
             <Button
               variant="contained"
+              sx={{ backgroundColor: "#007391", "&:hover": { backgroundColor: "#005c6b" } }}
+              onClick={loadNoPagados}
+              startIcon={<UploadFile />}
+            >
+              Cargar no pagados
+            </Button>
+
+            {showReminder && (
+              <Button
+                variant="contained"
+                sx={{ backgroundColor: "#f57c00", "&:hover": { backgroundColor: "#ef6c00" } }}
+                onClick={handleSendReminder}
+                startIcon={<Send />}
+              >
+                Enviar Recordatorio
+              </Button>
+            )}
+            <Button
+              variant="contained"
               onClick={handleSendCampaign}
               sx={{ backgroundColor: "#388e3c", "&:hover": { backgroundColor: "#00600f" } }}
               startIcon={<Send />}
@@ -179,8 +253,11 @@ const CampaignDetailPage = () => {
           <CustomDataGrid
             pagination={pagination}
             setPagination={setPagination}
-            rows={campaignClients}
-            totalRows={pagination.total}
+            getRowId={row => row.celular}
+            // rows={campaignClients}
+            // totalRows={pagination.total}
+            rows={ showReminder ? noPagados : campaignClients }
+            totalRows={ showReminder ? paginationNP.total : pagination.total }
             columns={[
               //{ field: "id", headerName: "ID Cliente", flex: 1 },
               { field: "nombre", headerName: "Nombre", flex: 1 },
