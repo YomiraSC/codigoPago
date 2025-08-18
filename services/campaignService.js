@@ -13,7 +13,7 @@ import axiosInstance from "./api";
 // };
 
 const API_URL = "/campaigns";
-
+const CLOUD_RUN_URL = "https://envios-meta-service-codpago-763512810578.us-central1.run.app";
 export const getCampaigns = async (page = 1, pageSize = 10) => {
     const response = await axiosInstance.get(`/campaigns?page=${page}&pageSize=${pageSize}`);
     return response.data;
@@ -91,11 +91,26 @@ export const removeClientFromCampaign = async (id, clientId) => {
   };
 
   export const sendCampaignMessages = async (campaignId) => {
-    try {
-      const response = await axiosInstance.post(`/campaigns/${campaignId}/send`);
-      return response.data;
-    } catch (error) {
-      console.error("❌ Error al enviar campaña:", error);
-      throw error;
+  try {
+    const response = await fetch(`${CLOUD_RUN_URL}/api/campaigns/${campaignId}/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        campaignId: campaignId,
+        callbackUrl: `${window.location.origin}/api/campaings/${campaignId}/callback`
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-  };
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("❌ Error al enviar campaña via Cloud Function:", error);
+    throw error;
+  }
+};
