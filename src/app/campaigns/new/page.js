@@ -30,7 +30,7 @@ export default function CampaignPage() {
   const [selectedDatabase, setSelectedDatabase] = useState("");
   const [columns, setColumns] = useState([]);
   const [template, setTemplate] = useState("");
-  const [clientFrequency, setClientFrequency] = useState("");
+  //const [clientFrequency, setClientFrequency] = useState("");
   const [clientSegment, setClientSegment] = useState("");
   const [cluster, setCluster] = useState("");
   const [strategy, setStrategy] = useState("");
@@ -44,12 +44,12 @@ export default function CampaignPage() {
   const [loadingColumns, setLoadingColumns] = useState(false);  // Estado para saber si estamos cargando las columnas
   const [clients, setClients] = useState([]); 
   const [selectedColumns, setSelectedColumns] = useState({
-  frecuencia: 'frecuencia'
+  segmentacion: 'segmentacion'
   });
   // Datos simulados
   const [databases, useDatabases] = useState([]);
 
-  const [frequencys,setFrequencys] = useState([]);
+  const [segments,setSegments] = useState([]);
   /* const [clusters, setClusterValues] = useState([]);
   const [strategies, setStrategyValues] = useState([]);
   const [fechaCuotaColumn, setFechaCuotaColumnValues] = useState([]);
@@ -174,7 +174,7 @@ const handleSubmit = async () => {
       const response = await axiosInstance.get("/bigquery/columns/filtros", {
         params: {
           database: value,
-          frequencyColumn: "frecuencia"
+          segmentColumn: "segmentacion"
         //   clusterColumn: "Cluster",
         //   estrategiaColumn: "gestion",
         //   fechaCuotaColumn: "Fec_Venc_Cuota",
@@ -183,7 +183,7 @@ const handleSubmit = async () => {
       });
       console.log("Valores únicos obtenidos:", response.data);
 
-      setFrequencys(response.data.frecuencias);
+      setSegments(response.data.segmentos);
     //   setClusterValues(response.data.clusters);
     //   setStrategyValues(response.data.estrategias);
     //   setFechaCuotaColumnValues(response.data.fechaCuotaColumn);
@@ -220,11 +220,11 @@ const applyFilters = async () => {
   // Array que contendrá 0-3 filtros, según lo que elija el usuario
   const filters = [];
 
-  if (selectedColumns.frecuencia) {
+  if (selectedColumns.segmentacion) {
     filters.push({
-      type: 'frecuencia',
-      column: selectedColumns.frecuencia, // nombre de la columna
-      value : clientFrequency             // valor elegido en el <Select>
+      type: 'segmentacion',
+      column: selectedColumns.segmentacion, // nombre de la columna
+      value : clientSegment            // valor elegido en el <Select>
     });
   }
 
@@ -283,16 +283,21 @@ const applyFilters = async () => {
 };
 // ─────────────────────────────────────────────────────────────────
  const columnsgrid = [
-    { field: 'Codigo_Asociado', headerName: 'Código Asociado', width: 180 },
-    { field: 'nombre', headerName: 'Nombre', width: 180 },
-    { field: 'telefono', headerName: 'Teléfono', width: 180 },
-    { field: 'segmentacion', headerName: 'Segmento', width: 180 },
-    { field: 'monto', headerName: 'Monto', width: 150 },
-    { field: 'feccuota', headerName: 'Fecha Cuota', width: 180 },
-    { field: 'email', headerName: 'Correo', width: 220 },
-    { field: 'modelo', headerName: 'Modelo', width: 180 },
-    { field: 'codpago', headerName: 'Código Pago', width: 180 },
-    { field: 'Cta_Act_Pag', headerName: 'Cuotas', width: 120 },
+    // { field: 'Codigo_Asociado', headerName: 'Código Asociado', width: 180 },
+    // { field: 'nombre', headerName: 'Nombre', width: 180 },
+    // { field: 'telefono', headerName: 'Teléfono', width: 180 },
+    // { field: 'segmentacion', headerName: 'Segmento', width: 180 },
+    // { field: 'monto', headerName: 'Monto', width: 150 },
+    // { field: 'feccuota', headerName: 'Fecha Cuota', width: 180 },
+    // { field: 'email', headerName: 'Correo', width: 220 },
+    // { field: 'modelo', headerName: 'Modelo', width: 180 },
+    // { field: 'codpago', headerName: 'Código Pago', width: 180 },
+    // { field: 'Cta_Act_Pag', headerName: 'Cuotas', width: 120 },
+    { field: 'telefono', headerName: 'Teléfono', width: 120 },
+    { field: 'nombre', headerName: 'Nombre', width: 120 },
+    { field: 'DNI', headerName: 'DNI', width: 120 },
+    { field: 'segmentacion', headerName: 'Segmentación', width: 120 },
+    { field: 'Gestion', headerName: 'Gestión', width: 120 },
   ];
 // ---------------------------------------------------------------------------
 
@@ -388,15 +393,15 @@ const applyFilters = async () => {
           <Grid container spacing={4} mb={5}>
             <Grid item xs={12} sm={6} md={4}>
               <FormControl fullWidth>
-                <InputLabel sx={{ color: colors.darkBlue, fontWeight: 600 }}>Frecuencia</InputLabel>
+                <InputLabel sx={{ color: colors.darkBlue, fontWeight: 600 }}>Segmentación</InputLabel>
                 <Select
-                  value={clientFrequency}
-                  onChange={(e) => setClientFrequency(e.target.value)}
-                  label="Frecuencia"
+                  value={clientSegment}
+                  onChange={(e) => setClientSegment(e.target.value)}
+                  label="Segmentacion"
                   sx={{ bgcolor: colors.white, borderRadius: 2, "& .MuiSelect-select": { fontWeight: 600 } }}
                 >
                   <MenuItem value="Todos">Todos</MenuItem>
-                  {frequencys.map((seg) => (
+                  {segments.map((seg) => (
                     <MenuItem key={seg} value={seg}>
                       {seg}
                     </MenuItem>

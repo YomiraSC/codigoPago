@@ -9,8 +9,8 @@ export async function GET(req) {
     const datasetId = 'BOT_codpago'; // Dataset ID fijo
     const tableName = url.searchParams.get('database'); // Tabla seleccionada
     // const segmentColumn = url.searchParams.get('segmentColumn'); 
-    const frecuenciaColumn = 'frecuencia';
-    if (!tableName || !frecuenciaColumn) {
+    const segmentoColumn = url.searchParams.get('segmentColumn');
+    if (!tableName || !segmentoColumn) {
       return new Response(
         JSON.stringify({
           message: '❌ Faltaron parámetros de tabla o columnas',
@@ -25,8 +25,8 @@ export async function GET(req) {
     }
 
     // Consultas para obtener los valores únicos de cada columna
-    const queryFrecuencia = `
-      SELECT DISTINCT \`${frecuenciaColumn}\`
+    const querySegmento = `
+      SELECT DISTINCT \`${segmentoColumn}\`
       FROM \`${projectId}.${datasetId}.${tableName}\`
     `;
     // const queryCluster = `
@@ -49,13 +49,13 @@ export async function GET(req) {
     // `;
 
     // Ejecutar las tres consultas SQL
-    const [rowsFrecuencia] = await bigquery.query({ query: queryFrecuencia });
+    const [rowsSegmento] = await bigquery.query({ query: querySegmento });
     // const [rowsCluster] = await bigquery.query({ query: queryCluster });
     // const [rowsEstrategia] = await bigquery.query({ query: queryEstrategia });
     // const [rowsFechaCuota] = await bigquery.query({ query: queryFechaCuota });
     // const [rowLinea] = await bigquery.query({ query: queryTipo });
     // Obtener los valores únicos de cada columna
-    const uniqueFrecuencia = rowsFrecuencia.map((row) => row[frecuenciaColumn]);
+    const uniqueSegmento = rowsSegmento.map((row) => row[segmentoColumn]);
     // const uniqueClusters = rowsCluster.map((row) => row[clusterColumn]);
     // const uniqueEstrategias = rowsEstrategia.map((row) => row[estrategiaColumn]);
     // const uniqueFechasCuota = rowsFechaCuota.map((row) => row[fechaCuotaColumn]);
@@ -64,7 +64,7 @@ export async function GET(req) {
     return new Response(
       JSON.stringify({
         message: '✅ Valores obtenidos correctamente',
-        frecuencias: uniqueFrecuencia
+        segmentos: uniqueSegmento
         // clusters: uniqueClusters,
         // estrategias: uniqueEstrategias,
         // fechaCuotaColumn: uniqueFechasCuota,

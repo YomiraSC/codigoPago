@@ -345,14 +345,14 @@
 // }
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import admin from "firebase-admin";
+import { db } from "@/lib/firebaseAdmin";
 
 // Inicializar Firestore sólo una vez
-if (!admin.apps.length) {
-  const svc = JSON.parse(process.env.FIREBASE_CREDENTIALS);
-  admin.initializeApp({ credential: admin.credential.cert(svc) });
-}
-const db = admin.firestore();
+// if (!admin.apps.length) {
+//   const svc = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+//   admin.initializeApp({ credential: admin.credential.cert(svc) });
+// }
+// const db = admin.firestore();
 
 export async function GET(req) {
   try {

@@ -86,7 +86,8 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import twilio from "twilio";
-import admin from "firebase-admin";
+// import admin from "firebase-admin";
+import { db } from "@/lib/firebaseAdmin";
 
 // helper para normalizar teléfono
 function formatPhone(raw) {
@@ -106,17 +107,18 @@ export async function POST(req, { params }) {
   }
 
   // 2) inicializar Firebase **solo en runtime** si hace falta
-  if (!admin.apps.length) {
-    if (process.env.FIREBASE_CREDENTIALS) {
-      const svc = JSON.parse(process.env.FIREBASE_CREDENTIALS);
-      admin.initializeApp({
-        credential: admin.credential.cert(svc),
-      });
-    } else {
-      console.warn("⚠️ FIREBASE_CREDENTIALS no definido, omito Firestore");
-    }
-  }
-  const db = admin.apps.length ? admin.firestore() : null;
+  // if (!admin.apps.length) {
+  //   if (process.env.FIREBASE_CREDENTIALS) {
+  //     const svc = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+  //     admin.initializeApp({
+  //       credential: admin.credential.cert(svc),
+  //     });
+  //   } else {
+  //     console.warn("⚠️ FIREBASE_CREDENTIALS no definido, omito Firestore");
+  //   }
+  // }
+  // const db = admin.apps.length ? admin.firestore() : null;
+  
 
   // 3) recuperar registro + campaña + template
   const registro = await prisma.campanha_temporal.findUnique({

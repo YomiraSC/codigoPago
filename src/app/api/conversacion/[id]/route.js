@@ -58,19 +58,20 @@ export async function GET(request, context) {
   } */
 
   import { NextResponse } from "next/server";
-  import admin from "firebase-admin";
+  // import admin from "firebase-admin";
+  import { db } from "@/lib/firebaseAdmin";
   import { getToken } from "next-auth/jwt";
   import prisma from "@/lib/prisma";
     
   // Inicializar Firestore solo si no está inicializado
-  if (!admin.apps.length) {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),    
-    });
-  }
+  // if (!admin.apps.length) {
+  //   const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+  //   admin.initializeApp({
+  //     credential: admin.credential.cert(serviceAccount),    
+  //   });
+  // }
     
-  const db = admin.firestore();
+  // const db = admin.firestore();
 
   export async function GET(request, context) {
     try {
