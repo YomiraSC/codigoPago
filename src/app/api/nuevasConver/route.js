@@ -345,7 +345,7 @@
 // }
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { db } from "@/lib/firebaseAdmin";
+import { db } from "@/lib/firebase";
 
 // Inicializar Firestore sólo una vez
 // if (!admin.apps.length) {
