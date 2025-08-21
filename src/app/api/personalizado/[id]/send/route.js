@@ -87,7 +87,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import twilio from "twilio";
 // import admin from "firebase-admin";
-import { db } from "@/lib/firebase";
+import db from "@/lib/firebase";
 
 // helper para normalizar teléfono
 function formatPhone(raw) {

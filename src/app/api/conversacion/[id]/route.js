@@ -59,7 +59,7 @@ export async function GET(request, context) {
 
   import { NextResponse } from "next/server";
   // import admin from "firebase-admin";
-  import { db } from "@/lib/firebase";
+import db from "@/lib/firebase";
   import { getToken } from "next-auth/jwt";
   import prisma from "@/lib/prisma";
     
