@@ -561,23 +561,174 @@
 //     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
 //   }
 // }
- //EN PARALELO CON TEMPORAL
- import { NextResponse } from "next/server";
+
+
+
+ //EN PARALELO CON TEMPORAL SIN PLIMIT
+//  import { NextResponse } from "next/server";
+// import prisma from "@/lib/prisma";
+// import admin from "firebase-admin";
+// import twilio from "twilio";
+// //import pLimit from "p-limit"; // Importamos p-limit
+
+// const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
+
+// // Inicializar Firestore solo si no está inicializado
+// if (!admin.apps.length) {
+//   const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+//   admin.initializeApp({
+//     credential: admin.credential.cert(serviceAccount),
+//   });
+// }
+// const db = admin.firestore();
+// export async function POST(req, context) {
+//   try {
+//     const params = await context.params;
+//     const campanhaId = Number(params.id);
+//     if (isNaN(campanhaId)) {
+//       return NextResponse.json({ error: "ID de campaña no válido" }, { status: 400 });
+//     }
+    
+//     // Obtener la campaña con su template
+//     const campaign = await prisma.campanha.findUnique({
+//       where: { campanha_id: campanhaId },
+//       include: { 
+//         template: true, 
+//       },
+//     });
+
+//     if (!campaign) {
+//       return NextResponse.json({ error: "Campaña no encontrada" }, { status: 404 });
+//     }
+//     if (!campaign.template || !campaign.template.template_content_sid) {
+//       return NextResponse.json({ error: "La campaña no tiene un template válido" }, { status: 400 });
+//     }
+    
+//     // Obtener los clientes cargados desde el Excel (tabla temporal)
+//     const clientes = await prisma.campanha_temporal.findMany({
+//       where: { campanha_id: campanhaId },
+//     });
+//     if (!clientes || clientes.length === 0) {
+//       return NextResponse.json({ error: "No hay clientes cargados para esta campaña" }, { status: 400 });
+//     }
+    
+//     // Filtrar clientes que tengan número de celular válido (ya vienen directos con la propiedad 'celular')
+//     const clientesConNumero = clientes.filter((clientItem) => clientItem.celular && clientItem.celular.trim() !== "");
+    
+//     if (clientesConNumero.length === 0) {
+//       return NextResponse.json({ error: "No hay clientes con número válido para enviar" }, { status: 400 });
+//     }
+    
+//     const twilioWhatsAppNumber = `whatsapp:${process.env.TWILIO_PHONE_NUMBER}`;
+    
+//     // Preparar las promesas de envío utilizando .map() sobre los registros filtrados
+//     const sendMessagePromises = clientesConNumero.map(async (clientItem) => {
+//       const celularFormatted = `whatsapp:${clientItem.celular.trim()}`;
+//       const contentSid = campaign.template.template_content_sid;
+//       const mensajeChatbot = campaign.template.mensaje;
+//       const messagePayload = {
+//         from: twilioWhatsAppNumber,
+//         to: celularFormatted,
+//         contentSid,
+//       };
+
+//       if (campaign.template.parametro) {
+//         messagePayload.contentVariables = JSON.stringify({
+//           1: "MAQUI+",
+//         });
+//       }
+    
+//       try {
+//         // Enviar el mensaje con Twilio
+//         const message = await client.messages.create(messagePayload);
+//         console.log(`Mensaje enviado a ${clientItem.celular}: ${message.sid}`);
+
+//         //guardar el envío para ver cuantos se envían
+//         await prisma.campanha_temporal.update({
+//           where: { celular: clientItem.celular, campanha_id: campanhaId},
+//           data: {
+//             twilio_sid: message.sid,
+//             estado_envio: message.status,
+//             error_codigo: null,
+//             error_mensaje: null,
+//           },
+//         });
+//         // Guardar el mensaje en Firestore
+//         await db.collection("test").add({
+//           celular: clientItem.celular,
+//           fecha: new Date(),
+//           id_bot: "codigopago",
+//           id_cliente: null,
+//           mensaje: mensajeChatbot,
+//           sender: false,
+//         });
+
+//         return { to: clientItem.celular, status: "sent", sid: message.sid };
+//       } catch (error) {
+//         // Registrar el fallo
+//         await prisma.campanha_temporal.update({
+//           where: { celular: clientItem.celular, campanha_id: campanhaId },
+//           data: {
+//             estado_envio: "failed",
+//             error_codigo: error.code?.toString(),
+//             error_mensaje: error.message,
+//           },
+//         });
+
+//         console.error(`Error al enviar mensaje a ${clientItem.celular}:`, error);
+//         return { to: clientItem.celular, status: "failed", error: error.message };
+//       }
+//     });
+
+//     //con guardado de estado de mensaje
+//     const results = await Promise.allSettled(sendMessagePromises);
+//     const sentMessages = results.map((res) =>
+//       res.status === "fulfilled" ? res.value : { status: "error", error: res.reason }
+//     );
+//     return NextResponse.json({ success: true, sentMessages });
+
+//     //sin guardar estado de mensaje 
+//     // const sentMessages = await Promise.all(sendMessagePromises);
+//     // return NextResponse.json({ success: true, sentMessages });
+    
+//   } catch (error) {
+//     console.error("Error en el envío de mensajes:", error);
+//     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
+//   }
+// }
+
+import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import admin from "firebase-admin";
 import twilio from "twilio";
-//import pLimit from "p-limit"; // Importamos p-limit
+import pLimit from "p-limit";
 
+// Inicializar client de Twilio
 const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
 
-// Inicializar Firestore solo si no está inicializado
-if (!admin.apps.length) {
+// Inicializar Firestore una sola vez\ if (!admin.apps.length) {
   const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });
-}
+
 const db = admin.firestore();
+
+/**
+ * Envía un mensaje usando Twilio con retry exponencial ante rate-limit (código 63018).
+ */
+async function sendWithRetry(payload, retries = 5, delay = 100) {
+  try {
+    return await client.messages.create(payload);
+  } catch (err) {
+    if (err.code === 63018 && retries > 0) {
+      await new Promise(r => setTimeout(r, delay));
+      return sendWithRetry(payload, retries - 1, delay * 2);
+    }
+    throw err;
+  }
+}
+
 export async function POST(req, context) {
   try {
     const params = await context.params;
@@ -585,109 +736,96 @@ export async function POST(req, context) {
     if (isNaN(campanhaId)) {
       return NextResponse.json({ error: "ID de campaña no válido" }, { status: 400 });
     }
-    
-    // Obtener la campaña con su template
+
+    // 1) Obtener la campaña con su template
     const campaign = await prisma.campanha.findUnique({
       where: { campanha_id: campanhaId },
-      include: { 
-        template: true, 
-      },
+      include: { template: true },
     });
-
     if (!campaign) {
       return NextResponse.json({ error: "Campaña no encontrada" }, { status: 404 });
     }
     if (!campaign.template || !campaign.template.template_content_sid) {
       return NextResponse.json({ error: "La campaña no tiene un template válido" }, { status: 400 });
     }
-    
-    // Obtener los clientes cargados desde el Excel (tabla temporal)
+
+    // 2) Obtener clientes desde tabla temporal
     const clientes = await prisma.campanha_temporal.findMany({
       where: { campanha_id: campanhaId },
     });
     if (!clientes || clientes.length === 0) {
       return NextResponse.json({ error: "No hay clientes cargados para esta campaña" }, { status: 400 });
     }
-    
-    // Filtrar clientes que tengan número de celular válido (ya vienen directos con la propiedad 'celular')
-    const clientesConNumero = clientes.filter((clientItem) => clientItem.celular && clientItem.celular.trim() !== "");
-    
+
+    // 3) Filtrar solo clientes con número válido
+    const clientesConNumero = clientes.filter(c => c.celular && c.celular.trim() !== "");
     if (clientesConNumero.length === 0) {
       return NextResponse.json({ error: "No hay clientes con número válido para enviar" }, { status: 400 });
     }
-    
+
     const twilioWhatsAppNumber = `whatsapp:${process.env.TWILIO_PHONE_NUMBER}`;
-    
-    // Preparar las promesas de envío utilizando .map() sobre los registros filtrados
-    const sendMessagePromises = clientesConNumero.map(async (clientItem) => {
-      const celularFormatted = `whatsapp:${clientItem.celular.trim()}`;
-      const contentSid = campaign.template.template_content_sid;
-      const mensajeChatbot = campaign.template.mensaje;
-      const messagePayload = {
-        from: twilioWhatsAppNumber,
-        to: celularFormatted,
-        contentSid,
-      };
 
-      if (campaign.template.parametro) {
-        messagePayload.contentVariables = JSON.stringify({
-          1: "MAQUI+",
-        });
-      }
-    
-      try {
-        // Enviar el mensaje con Twilio
-        const message = await client.messages.create(messagePayload);
-        console.log(`Mensaje enviado a ${clientItem.celular}: ${message.sid}`);
+    // 4) Limitador de concurrencia: solo 5 envíos simultáneos
+    const limit = pLimit(5);
 
-        //guardar el envío para ver cuantos se envían
-        await prisma.campanha_temporal.update({
-          where: { celular: clientItem.celular, campanha_id: campanhaId},
-          data: {
-            twilio_sid: message.sid,
-            estado_envio: message.status,
-            error_codigo: null,
-            error_mensaje: null,
-          },
-        });
-        // Guardar el mensaje en Firestore
-        await db.collection("test").add({
-          celular: clientItem.celular,
-          fecha: new Date(),
-          id_bot: "codigopago",
-          id_cliente: null,
-          mensaje: mensajeChatbot,
-          sender: false,
-        });
+    // 5) Mapear envíos usando limit y sendWithRetry
+    const sendMessagePromises = clientesConNumero.map(clientItem =>
+      limit(async () => {
+        const celularFormatted = `whatsapp:${clientItem.celular.trim()}`;
+        const payload = {
+          from: twilioWhatsAppNumber,
+          to: celularFormatted,
+          contentSid: campaign.template.template_content_sid,
+        };
+        if (campaign.template.parametro) {
+          payload.contentVariables = JSON.stringify({ 1: "MAQUI+" });
+        }
 
-        return { to: clientItem.celular, status: "sent", sid: message.sid };
-      } catch (error) {
-        // Registrar el fallo
-        await prisma.campanha_temporal.update({
-          where: { celular: clientItem.celular, campanha_id: campanhaId },
-          data: {
-            estado_envio: "failed",
-            error_codigo: error.code?.toString(),
-            error_mensaje: error.message,
-          },
-        });
+        try {
+          const message = await sendWithRetry(payload);
+          console.log(`Mensaje enviado a ${clientItem.celular}: ${message.sid}`);
 
-        console.error(`Error al enviar mensaje a ${clientItem.celular}:`, error);
-        return { to: clientItem.celular, status: "failed", error: error.message };
-      }
-    });
+          // 6) Guardar estado en Prisma y Firestore
+          await prisma.campanha_temporal.update({
+            where: { celular: clientItem.celular, campanha_id: campanhaId },
+            data: {
+              twilio_sid: message.sid,
+              estado_envio: message.status,
+              error_codigo: null,
+              error_mensaje: null,
+            },
+          });
+          await db.collection("test").add({
+            celular: clientItem.celular,
+            fecha: new Date(),
+            id_bot: "codigopago",
+            id_cliente: null,
+            mensaje: campaign.template.mensaje,
+            sender: false,
+          });
 
-    //con guardado de estado de mensaje
+          return { to: clientItem.celular, status: "sent", sid: message.sid };
+        } catch (error) {
+          await prisma.campanha_temporal.update({
+            where: { celular: clientItem.celular, campanha_id: campanhaId },
+            data: {
+              estado_envio: "failed",
+              error_codigo: error.code?.toString(),
+              error_mensaje: error.message,
+            },
+          });
+          console.error(`Error al enviar mensaje a ${clientItem.celular}:`, error);
+          return { to: clientItem.celular, status: "failed", error: error.message };
+        }
+      })
+    );
+
+    // 7) Ejecutar todas las promesas y devolver el resultado
     const results = await Promise.allSettled(sendMessagePromises);
-    const sentMessages = results.map((res) =>
-      res.status === "fulfilled" ? res.value : { status: "error", error: res.reason }
+    const sentMessages = results.map(r =>
+      r.status === "fulfilled" ? r.value : { status: "error", error: r.reason }
     );
     return NextResponse.json({ success: true, sentMessages });
-
-    //sin guardar estado de mensaje 
-    // const sentMessages = await Promise.all(sendMessagePromises);
-    // return NextResponse.json({ success: true, sentMessages });
-    
   } catch (error) {
     console.error("Error en el envío de mensajes:", error);
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
