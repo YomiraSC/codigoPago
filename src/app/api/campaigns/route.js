@@ -47,7 +47,8 @@ export async function POST(req) {
         const { nombre_campanha, descripcion, template_id, fecha_fin } = await req.json();
         console.log("Campaña",nombre_campanha,descripcion,template_id,fecha_fin);
         const campanha = await prisma.campanha.create({
-            data: { nombre_campanha, descripcion, template_id : null, fecha_fin: new Date(fecha_fin) },
+            data: { nombre_campanha, descripcion, template_id : null, fecha_fin: new Date(fecha_fin) , variable_mappings: { "1": "nombre" },
+        estado_campanha: "Activo" },
         });
         
         return NextResponse.json({ message: "Campaña creada con éxito", campanha });
