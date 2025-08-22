@@ -91,55 +91,111 @@ export async function POST(req) {
       .join(', ');
 
     /* 3.3 consulta final con JOIN */
-    const QUERY = `
-   WITH cte_M1 AS (
-    SELECT 
-      base.Codigo_Asociado,
-      base.segmentacion,
-      base.Cluster,
-      base.gestion,
-      fondos.Cta_Act_Pag,
-      fondos.Telf_SMS,
-      fondos.E_mail,
-      fondos.Linea
-    FROM   \`${project}.${dataset}.${table}\` AS base
-    LEFT JOIN peak-emitter-350713.FR_general.bd_fondos AS fondos
-      ON base.Codigo_Asociado = fondos.Codigo_Asociado
-  ),
-  ranked AS (
-    SELECT 
-      M1.Codigo_Asociado,
-      M1.segmentacion,
-      M1.Linea,
-      envios.Email AS email,
-      M1.Cta_Act_Pag,
-      envios.TelfSMS AS telefono,
-      envios.Primer_Nombre AS nombre,
-      envios.Cod_Banco AS codpago,
-      envios.Fec_Venc_Cuota AS feccuota,
-      envios.Modelo AS modelo,
-      FORMAT('%.2f', envios.Monto) AS monto,
-      ROW_NUMBER() OVER (PARTITION BY envios.TelfSMS ORDER BY envios.N_Doc) AS row_num  -- Asigna un número a cada fila por TelfSMS
-    FROM cte_M1 AS M1
-    INNER JOIN peak-emitter-350713.FR_general.envios_cobranzas_m0 AS envios
-      ON M1.Telf_SMS = envios.TelfSMS
-    WHERE   
-      ${whereSQL}
-  )
-  SELECT 
-    Cta_Act_Pag,
-    Codigo_Asociado,
-    segmentacion,
-    email,
-    telefono,
-    nombre,
-    codpago,
-    feccuota,
-    modelo,
-    monto,
-    Linea
-  FROM ranked
-  WHERE row_num = 1;  -- Selecciona solo la primera fila de cada grupo de TelfSMS
+//     const QUERY = `
+//    WITH cte_M1 AS (
+//     SELECT 
+//       base.Codigo_Asociado,
+//       base.segmentacion,
+//       base.Cluster,
+//       base.gestion,
+//       fondos.Cta_Act_Pag,
+//       fondos.Telf_SMS,
+//       fondos.E_mail,
+//       fondos.Linea
+//     FROM   \`${project}.${dataset}.${table}\` AS base
+//     LEFT JOIN peak-emitter-350713.FR_general.bd_fondos AS fondos
+//       ON base.Codigo_Asociado = fondos.Codigo_Asociado
+//   ),
+//   ranked AS (
+//     SELECT 
+//       M1.Codigo_Asociado,
+//       M1.segmentacion,
+//       M1.Linea,
+//       envios.Email AS email,
+//       M1.Cta_Act_Pag,
+//       envios.TelfSMS AS telefono,
+//       envios.Primer_Nombre AS nombre,
+//       envios.Cod_Banco AS codpago,
+//       envios.Fec_Venc_Cuota AS feccuota,
+//       envios.Modelo AS modelo,
+//       FORMAT('%.2f', envios.Monto) AS monto,
+//       ROW_NUMBER() OVER (PARTITION BY envios.TelfSMS ORDER BY envios.N_Doc) AS row_num  -- Asigna un número a cada fila por TelfSMS
+//     FROM cte_M1 AS M1
+//     INNER JOIN peak-emitter-350713.FR_general.envios_cobranzas_m0 AS envios
+//       ON M1.Telf_SMS = envios.TelfSMS
+//     WHERE   
+//       ${whereSQL}
+//   )
+//   SELECT 
+//     Cta_Act_Pag,
+//     Codigo_Asociado,
+//     segmentacion,
+//     email,
+//     telefono,
+//     nombre,
+//     codpago,
+//     feccuota,
+//     modelo,
+//     monto,
+//     Linea
+//   FROM ranked
+//   WHERE row_num = 1;  -- Selecciona solo la primera fila de cada grupo de TelfSMS
+// `;
+
+// const QUERY = `
+//    WITH base_filtrada AS (
+//   SELECT *
+//   FROM \`${project}.${dataset}.${table}\`
+//   WHERE ${whereSQL}
+// ),
+// join_fondos AS (
+//   SELECT
+//     b.*,
+//     f.Cod_Bco
+//   FROM base_filtrada b
+//   LEFT JOIN \`peak-emitter-350713.FR_general.bd_fondos\` f
+//     ON REGEXP_REPLACE(CAST(b.DNI AS STRING), r'[^0-9]', '')  -- limpia DNI por si acaso
+//        = REGEXP_REPLACE(CAST(f.N_Doc AS STRING), r'[^0-9]', '')  -- quita coma final y no dígitos
+// )
+// SELECT
+//   b.DNI,
+//   b.segmentacion,
+//   b.Gestion,
+//   b.telefono,
+//   b.nombre,
+//   IFNULL(STRING_AGG(DISTINCT CAST(Cod_Bco AS STRING), ', '), '') AS codigos_pago
+// FROM join_fondos b
+// GROUP BY
+//   b.DNI, b.segmentacion, b.Gestion,b.telefono, b.nombre;
+
+// `;
+
+const QUERY = `
+   WITH base_filtrada AS (
+  SELECT *
+  FROM \`${project}.${dataset}.${table}\`
+  WHERE ${whereSQL}
+),
+join_fondos AS (
+  SELECT
+    b.*,
+    REGEXP_REPLACE(TRIM(CAST(f.Cod_Bco AS STRING)), r',$', '') AS Cod_Bco
+  FROM base_filtrada b
+  LEFT JOIN peak-emitter-350713.FR_general.bd_fondos f
+    ON REGEXP_REPLACE(CAST(b.DNI AS STRING), r'[^0-9]', '') =
+       REGEXP_REPLACE(CAST(f.N_Doc AS STRING), r'[^0-9]', '')
+)
+SELECT
+  DNI,
+  segmentacion,
+  Gestion,
+  telefono,
+  nombre,
+  IFNULL(STRING_AGG(DISTINCT CAST(Cod_Bco AS STRING), ', '), '') AS codigo_pago
+FROM join_fondos
+GROUP BY
+  DNI, segmentacion, Gestion, telefono, nombre;
+
 `;
     console.log('Consulta SQL:', QUERY);
 

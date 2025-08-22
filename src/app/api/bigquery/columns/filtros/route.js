@@ -10,7 +10,8 @@ export async function GET(req) {
     const tableName = url.searchParams.get('database'); // Tabla seleccionada
     // const segmentColumn = url.searchParams.get('segmentColumn'); 
     const segmentoColumn = url.searchParams.get('segmentColumn');
-    if (!tableName || !segmentoColumn) {
+    const estrategiaColumn = url.searchParams.get('estrategiaColumn');
+    if (!tableName || !segmentoColumn || !estrategiaColumn) {
       return new Response(
         JSON.stringify({
           message: '❌ Faltaron parámetros de tabla o columnas',
@@ -33,10 +34,10 @@ export async function GET(req) {
     //   SELECT DISTINCT \`${clusterColumn}\`
     //   FROM \`${projectId}.${datasetId}.${tableName}\`
     // `;
-    // const queryEstrategia = `
-    //   SELECT DISTINCT \`${estrategiaColumn}\`
-    //   FROM \`${projectId}.${datasetId}.${tableName}\`
-    // `;
+    const queryEstrategia = `
+      SELECT DISTINCT \`${estrategiaColumn}\`
+      FROM \`${projectId}.${datasetId}.${tableName}\`
+    `;
 
     // const queryFechaCuota = `
     //   SELECT DISTINCT \`${fechaCuotaColumn}\`
@@ -51,22 +52,22 @@ export async function GET(req) {
     // Ejecutar las tres consultas SQL
     const [rowsSegmento] = await bigquery.query({ query: querySegmento });
     // const [rowsCluster] = await bigquery.query({ query: queryCluster });
-    // const [rowsEstrategia] = await bigquery.query({ query: queryEstrategia });
+    const [rowsEstrategia] = await bigquery.query({ query: queryEstrategia });
     // const [rowsFechaCuota] = await bigquery.query({ query: queryFechaCuota });
     // const [rowLinea] = await bigquery.query({ query: queryTipo });
     // Obtener los valores únicos de cada columna
     const uniqueSegmento = rowsSegmento.map((row) => row[segmentoColumn]);
     // const uniqueClusters = rowsCluster.map((row) => row[clusterColumn]);
-    // const uniqueEstrategias = rowsEstrategia.map((row) => row[estrategiaColumn]);
+    const uniqueEstrategias = rowsEstrategia.map((row) => row[estrategiaColumn]);
     // const uniqueFechasCuota = rowsFechaCuota.map((row) => row[fechaCuotaColumn]);
     // const uniqueLinea = rowLinea.map((row)=> row[lineaColumn]);
 
     return new Response(
       JSON.stringify({
         message: '✅ Valores obtenidos correctamente',
-        segmentos: uniqueSegmento
+        segmentos: uniqueSegmento,
         // clusters: uniqueClusters,
-        // estrategias: uniqueEstrategias,
+        estrategias: uniqueEstrategias,
         // fechaCuotaColumn: uniqueFechasCuota,
         // lineas: uniqueLinea
       }),

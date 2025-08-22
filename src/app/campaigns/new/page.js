@@ -44,16 +44,17 @@ export default function CampaignPage() {
   const [loadingColumns, setLoadingColumns] = useState(false);  // Estado para saber si estamos cargando las columnas
   const [clients, setClients] = useState([]); 
   const [selectedColumns, setSelectedColumns] = useState({
-  segmentacion: 'segmentacion'
+  segmentacion: 'segmentacion',
+  estrategia: 'gestion'
   });
   // Datos simulados
   const [databases, useDatabases] = useState([]);
 
   const [segments,setSegments] = useState([]);
-  /* const [clusters, setClusterValues] = useState([]);
+  // const [clusters, setClusterValues] = useState([]);
   const [strategies, setStrategyValues] = useState([]);
-  const [fechaCuotaColumn, setFechaCuotaColumnValues] = useState([]);
-  const [lineaValue, setLineaValues] = useState([]); */
+  // const [fechaCuotaColumn, setFechaCuotaColumnValues] = useState([]);
+  // const [lineaValue, setLineaValues] = useState([]);
   const variables = ["Variable 1", "Variable 2", "Variable 3"];
   // al inicio: yomi
   const [placeholders, setPlaceholders] = useState([])            // e.g. [ "1", "2", ... ]
@@ -174,9 +175,9 @@ const handleSubmit = async () => {
       const response = await axiosInstance.get("/bigquery/columns/filtros", {
         params: {
           database: value,
-          segmentColumn: "segmentacion"
+          segmentColumn: "segmentacion",
         //   clusterColumn: "Cluster",
-        //   estrategiaColumn: "gestion",
+          estrategiaColumn: "gestion",
         //   fechaCuotaColumn: "Fec_Venc_Cuota",
         //   lineaColumn: "Linea"
         }  // Enviamos los nombres de las columnas seleccionadas
@@ -185,14 +186,14 @@ const handleSubmit = async () => {
 
       setSegments(response.data.segmentos);
     //   setClusterValues(response.data.clusters);
-    //   setStrategyValues(response.data.estrategias);
+      setStrategyValues(response.data.estrategias);
     //   setFechaCuotaColumnValues(response.data.fechaCuotaColumn);
     //   setLineaValues(response.data.lineas);
-      /*setColumnValues({
-        segmento: response.data.segmentos,
-        cluster: response.data.clusters,
-        estrategia: response.data.estrategias
-      });*/
+      // setColumnValues({
+      //   segmento: response.data.segmentos,
+      //   // cluster: response.data.clusters,
+      //   estrategia: response.data.estrategias
+      // });
       setLoadingColumns(false);  // Detener el indicador de carga
     } catch (error) {
       console.error("Error al obtener los valores únicos:", error);
@@ -236,13 +237,13 @@ const applyFilters = async () => {
 //     });
 //   }
 
-//   if (selectedColumns.estrategia) {
-//     filters.push({
-//       type: 'estrategia',
-//       column: selectedColumns.estrategia,
-//       value : strategy
-//     });
-//   }
+  if (selectedColumns.estrategia) {
+    filters.push({
+      type: 'estrategia',
+      column: selectedColumns.estrategia,
+      value : strategy
+    });
+  }
 //   if (selectedColumns.fechaCuota) {
 //     filters.push({
 //       type: 'fechaCuota',
@@ -298,6 +299,7 @@ const applyFilters = async () => {
     { field: 'DNI', headerName: 'DNI', width: 120 },
     { field: 'segmentacion', headerName: 'Segmentación', width: 120 },
     { field: 'Gestion', headerName: 'Gestión', width: 120 },
+    { field: 'codigo_pago', headerName: 'Código Pago', width: 180 },
   ];
 // ---------------------------------------------------------------------------
 
@@ -430,13 +432,13 @@ const applyFilters = async () => {
               </FormControl>
             </Grid> */}
 
-            {/* <Grid item xs={12} sm={6} md={4}>
+            <Grid item xs={12} sm={6} md={4}>
               <FormControl fullWidth>
-                <InputLabel sx={{ color: colors.darkBlue, fontWeight: 600 }}>Estrategia</InputLabel>
+                <InputLabel sx={{ color: colors.darkBlue, fontWeight: 600 }}>Gestión</InputLabel>
                 <Select
                   value={strategy}
                   onChange={(e) => setStrategy(e.target.value)}
-                  label="Estrategia"
+                  label="Gestion"
                   sx={{ bgcolor: colors.white, borderRadius: 2, "& .MuiSelect-select": { fontWeight: 600 } }}
                 >
                                     <MenuItem value="Todos">Todos</MenuItem>
@@ -448,7 +450,7 @@ const applyFilters = async () => {
                   ))}
                 </Select>
               </FormControl>
-            </Grid> */}
+            </Grid>
 
             {/* <Grid item xs={12} sm={6} md={4}>
               <FormControl fullWidth>
