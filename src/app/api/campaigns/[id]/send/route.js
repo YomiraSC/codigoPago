@@ -699,7 +699,7 @@
 
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import admin from "firebase-admin";
+import db from "@/lib/firebase";
 import twilio from "twilio";
 import pLimit from "p-limit";
 
@@ -707,12 +707,12 @@ import pLimit from "p-limit";
 const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
 
 // Inicializar Firestore una sola vez\ if (!admin.apps.length) {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
+//   const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+//   admin.initializeApp({
+//     credential: admin.credential.cert(serviceAccount),
+//   });
 
-const db = admin.firestore();
+// const db = admin.firestore();
 
 /**
  * Envía un mensaje usando Twilio con retry exponencial ante rate-limit (código 63018).
