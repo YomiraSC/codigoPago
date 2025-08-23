@@ -13,7 +13,7 @@ model accion_comercial {
   cita_id             Int?
   pago_id             Int?
   persona_id          Int?
-  estado              String?   @db.VarChar(25)
+  estado              String?   @db.VarChar(50)
   fecha_accion        DateTime? @default(now()) @db.Timestamp(6)
   nota                String
   cliente             cliente?  @relation(fields: [cliente_id], references: [cliente_id], onDelete: Cascade, onUpdate: NoAction, map: "accion_comercial_ibfk_1")
@@ -95,6 +95,7 @@ model cliente {
   accion                       String?            @db.VarChar(50)
   in_out                       Boolean?           @default(false)
   score                        String             @default("no_score") @db.VarChar(20)
+  fecha_ultimo_estado          DateTime?          @db.Timestamp(6)
   accion_comercial             accion_comercial[]
   cita                         cita[]
   cliente_campanha             cliente_campanha[]
@@ -238,4 +239,16 @@ model usuario {
   activo     Boolean  @default(true)
   persona    persona?
   rol        rol?     @relation(fields: [rol_id], references: [rol_id], onUpdate: NoAction, map: "usuario_fk_rol")
+}
+
+model envios_directos {
+  envios_directos_id  Int       @id @default(autoincrement())
+  celular             String    @db.VarChar(20)
+  fecha_asociacion    DateTime? @default(now()) @db.Timestamp(6)
+  whatsapp_message_id String?   @db.VarChar(255)
+  estado_mensaje      String?   @db.VarChar(50)
+  fecha_envio         DateTime? @db.Timestamp(6)
+  fecha_ultimo_estado DateTime? @db.Timestamp(6)
+  error_code          String?   @db.VarChar(50)
+  error_descripcion   String?
 }

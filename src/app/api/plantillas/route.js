@@ -17,6 +17,7 @@ export async function GET() {
       },
       orderBy: { created_at: "desc" }, // Ordena por la fecha de creación
     });
+    console.log("✅ Plantillas obtenidas:", templates);
 
     return NextResponse.json(templates);
   } catch (error) {
