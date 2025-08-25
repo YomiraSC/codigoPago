@@ -115,7 +115,7 @@ export async function POST(request) {
       console.log('🚀 Enviando a Meta API:', JSON.stringify(metaApiData, null, 2));
 
       // Realizar llamada a Meta API
-      const metaResponse = await fetch('https://graph.facebook.com/v18.0/768639522993701/messages', {
+      const metaResponse = await fetch('https://graph.facebook.com/v18.0/710553965483257/messages', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${process.env.META_ACCESS_TOKEN}`,
