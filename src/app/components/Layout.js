@@ -75,7 +75,7 @@ export default function Layout({ children }) {
       </Toolbar>
       <Divider sx={{ bgcolor: "#254e59" }} />
       <List>
-        {isAdmin && (
+        {/* {session?.user?.role === "Administrador" && (
           <ListItem
             button="true"
             onClick={() => router.push("/admin")}
@@ -90,7 +90,7 @@ export default function Layout({ children }) {
             </ListItemIcon>
             <ListItemText primary="Admin" />
           </ListItem>
-        )}
+        )} */}
         {/*<ListItem
           button="true"
           onClick={() => router.push("/leads")}
@@ -114,12 +114,13 @@ export default function Layout({ children }) {
             py: 1.5,
           }}
         >
+          
           <ListItemIcon sx={{ color: "#fff" }}>
             <HomeIcon />
           </ListItemIcon>
           <ListItemText primary="Home" />
         </ListItem>
-
+        {session?.user?.role === "Administrador" && (
         <ListItem
           button="true"
           onClick={() => router.push("/clientes")}
@@ -128,12 +129,14 @@ export default function Layout({ children }) {
             px: 3,
             py: 1.5,
           }}
+
         >
           <ListItemIcon sx={{ color: "#fff" }}>
             <PeopleIcon />
           </ListItemIcon>
           <ListItemText primary="Clientes" />
         </ListItem>
+        )}
         
         <ListItem
           button="true"
@@ -149,7 +152,7 @@ export default function Layout({ children }) {
           </ListItemIcon>
           <ListItemText primary="Tareas" />
         </ListItem>
-
+{session?.user?.role === "Administrador" && (
         <ListItem
           button="true"
           onClick={() => router.push("/clientesRiesgo")}
@@ -164,6 +167,7 @@ export default function Layout({ children }) {
           </ListItemIcon>
           <ListItemText primary="Seguimiento" />
         </ListItem>
+        )}
         {/* <ListItem
           button="true"
           onClick={() => router.push("/dashboard")}
@@ -223,6 +227,7 @@ export default function Layout({ children }) {
           </ListItemIcon>
           <ListItemText primary="Promesas de Pago" />
         </ListItem> */}
+        {session?.user?.role === "Administrador" && (
         <ListItem
           button="true"
           onClick={() => router.push("/nuevasConver")}
@@ -237,6 +242,8 @@ export default function Layout({ children }) {
           </ListItemIcon>
           <ListItemText primary="Nuevas conversaciones" />
         </ListItem>
+        )}
+        {session?.user?.role === "Administrador" && (
         <ListItem
           button="true"
           onClick={() => router.push("/campaigns")}
@@ -251,6 +258,8 @@ export default function Layout({ children }) {
           </ListItemIcon>
           <ListItemText primary="Campañas" />
         </ListItem> 
+        )}
+        {session?.user?.role === "Administrador" && (
         <ListItem
           button="true"
           onClick={() => router.push("/personalizado")}
@@ -265,7 +274,8 @@ export default function Layout({ children }) {
           </ListItemIcon>
           <ListItemText primary="Envío" />
         </ListItem> 
-        {session?.user?.rol_id === 1 && (
+        )}
+        {session?.user?.role === "Administrador" && (
         <ListItem
           button="true"
           onClick={() => router.push("/usuarios")}
