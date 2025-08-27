@@ -96,6 +96,7 @@ model cliente {
   in_out                       Boolean?           @default(false)
   score                        String             @default("no_score") @db.VarChar(20)
   fecha_ultimo_estado          DateTime?          @db.Timestamp(6)
+  code_pago                    String?            @db.VarChar(50)
   accion_comercial             accion_comercial[]
   cita                         cita[]
   cliente_campanha             cliente_campanha[]
@@ -113,6 +114,12 @@ model cliente_campanha {
   cliente_id          Int
   campanha_id         Int
   fecha_asociacion    DateTime? @default(now()) @db.Timestamp(6)
+  whatsapp_message_id String?   @db.VarChar(255)
+  estado_mensaje      String?   @db.VarChar(50)
+  fecha_envio         DateTime? @db.Timestamp(6)
+  fecha_ultimo_estado DateTime? @db.Timestamp(6)
+  error_code          String?   @db.VarChar(50)
+  error_descripcion   String?
   cliente             cliente   @relation(fields: [cliente_id], references: [cliente_id], onDelete: Cascade, onUpdate: NoAction, map: "cliente_campanha_ibfk_1")
   campanha            campanha  @relation(fields: [campanha_id], references: [campanha_id], onDelete: Cascade, onUpdate: NoAction, map: "cliente_campanha_ibfk_2")
 }
@@ -145,6 +152,18 @@ model conversacion {
   nivel_satisfaccion       String?   @db.VarChar(25)
   cita                     cita[]
   cliente                  cliente   @relation(fields: [cliente_id], references: [cliente_id], onDelete: Cascade, onUpdate: NoAction, map: "conversacion_ibfk_1")
+}
+
+model envios_directos {
+  envios_directos_id  Int       @id @default(autoincrement())
+  celular             String    @db.VarChar(20)
+  fecha_asociacion    DateTime? @default(now()) @db.Timestamp(6)
+  whatsapp_message_id String?   @db.VarChar(255)
+  estado_mensaje      String?   @db.VarChar(50)
+  fecha_envio         DateTime? @db.Timestamp(6)
+  fecha_ultimo_estado DateTime? @db.Timestamp(6)
+  error_code          String?   @db.VarChar(50)
+  error_descripcion   String?
 }
 
 model historico_estado {
@@ -239,16 +258,4 @@ model usuario {
   activo     Boolean  @default(true)
   persona    persona?
   rol        rol?     @relation(fields: [rol_id], references: [rol_id], onUpdate: NoAction, map: "usuario_fk_rol")
-}
-
-model envios_directos {
-  envios_directos_id  Int       @id @default(autoincrement())
-  celular             String    @db.VarChar(20)
-  fecha_asociacion    DateTime? @default(now()) @db.Timestamp(6)
-  whatsapp_message_id String?   @db.VarChar(255)
-  estado_mensaje      String?   @db.VarChar(50)
-  fecha_envio         DateTime? @db.Timestamp(6)
-  fecha_ultimo_estado DateTime? @db.Timestamp(6)
-  error_code          String?   @db.VarChar(50)
-  error_descripcion   String?
 }

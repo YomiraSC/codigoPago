@@ -294,12 +294,12 @@ const applyFilters = async () => {
     // { field: 'modelo', headerName: 'Modelo', width: 180 },
     // { field: 'codpago', headerName: 'Código Pago', width: 180 },
     // { field: 'Cta_Act_Pag', headerName: 'Cuotas', width: 120 },
-    { field: 'telefono', headerName: 'Teléfono', width: 120 },
+    { field: 'celular', headerName: 'Teléfono', width: 120 },
     { field: 'nombre', headerName: 'Nombre', width: 120 },
-    { field: 'DNI', headerName: 'DNI', width: 120 },
+    { field: 'documento_identidad', headerName: 'DNI', width: 120 },
     { field: 'segmentacion', headerName: 'Segmentación', width: 120 },
     { field: 'Gestion', headerName: 'Gestión', width: 120 },
-    { field: 'codigo_pago', headerName: 'Código Pago', width: 180 },
+    { field: 'code_pago', headerName: 'Código Pago', width: 180 },
   ];
 // ---------------------------------------------------------------------------
 

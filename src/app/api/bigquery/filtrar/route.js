@@ -186,12 +186,12 @@ join_fondos AS (
        REGEXP_REPLACE(CAST(f.N_Doc AS STRING), r'[^0-9]', '')
 )
 SELECT
-  DNI,
+  DNI as documento_identidad,
   segmentacion,
   Gestion,
-  telefono,
+  telefono as celular,
   nombre,
-  IFNULL(STRING_AGG(DISTINCT CAST(Cod_Bco AS STRING), ', '), '') AS codigo_pago
+  IFNULL(STRING_AGG(DISTINCT CAST(Cod_Bco AS STRING), ', '), '') AS code_pago 
 FROM join_fondos
 GROUP BY
   DNI, segmentacion, Gestion, telefono, nombre;
