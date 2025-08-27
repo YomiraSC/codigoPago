@@ -1,92 +1,40 @@
 "use client";
-import { useClientes } from "@/hooks/useClientes";
+
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import useCampaignDetail from "@/hooks/useCampaignsDetail";
-import { DataGrid } from "@mui/x-data-grid";
 import {
-  Box, Typography, Button, CircularProgress, Alert, Dialog, DialogTitle, 
-  DialogContent, DialogActions, Table, TableHead, TableRow, TableCell, TableBody, 
-  Card, CardContent, Divider, IconButton
+  Box, Typography, Button, CircularProgress, Alert, Dialog, DialogTitle,
+  DialogContent, DialogActions, Table, TableHead, TableRow, TableCell, TableBody,
+  Card, CardContent, Divider, IconButton, Chip, Grid, Paper, Avatar, Fade, LinearProgress
 } from "@mui/material";
 import CustomDataGrid from "@/app/components/CustomDataGrid";
 import * as XLSX from "xlsx";
-import { ArrowBack, UploadFile, Send, Delete } from "@mui/icons-material"; 
-
+import { 
+  ArrowBack, UploadFile, Send, Delete, Campaign, Schedule, 
+  Group, Message, CheckCircle, Error, Info, Warning,
+  Phone, Person, Business, DateRange, Assessment
+} from "@mui/icons-material";
+import { addClientesACampanha, getClientesPorGestor, getGestores } from "../../../../services/campaignService";
+import axiosInstance from "../../../../services/api";
+import ContactoStats from "@/app/components/ContactoStats";
+import CampaignStatsCard from "@/app/components/CampaignStatsCard";
 const CampaignDetailPage = () => {
   const params = useParams();
   const router = useRouter();
   const campaignId = params?.id;
-  console.log("idcampagna: ",campaignId);
+
   const [openModal, setOpenModal] = useState(false);
   const [file, setFile] = useState(null);
   const [clients, setClients] = useState([]);
   const [loadingUpload, setLoadingUpload] = useState(false);
   const fileInputRef = useRef(null);
-  const [noPagados, setNoPagados] = useState([]);
-  const [paginationNP, setPaginationNP] = useState({ page: 1, pageSize: 10, total: 0 });
-  const [showReminder, setShowReminder] = useState(false);
-  
-  const {filters,setFilters} = useClientes();
-    const [clientesRiesgo, setClientesRiesgo] = useState([]);
-    const [loading1, setLoading1] = useState(true);
-    //const [openModal, setOpenModal] = useState(false);
-    const [editingUser, setEditingUser] = useState(null);
-    //const [pagination, setPagination] = useState({ page: 1, pageSize: 10 });
-    const [sortModel, setSortModel] = useState([]);  
-    const [totalCR, setCR] = useState(0);
-  // const loadNoPagados = async () => {
-  //   const { page, pageSize } = paginationNP;
-  //   const res = await fetch(`/api/campaigns/${campaignId}/no-pagados?page=${page}&pageSize=${pageSize}`);
-  //   const data = await res.json();
-  //   if (!data.error) {
-  //     setNoPagados(data.clientes);
-  //     setPaginationNP(prev => ({ ...prev, total: data.pagination.total }));
-  //     setShowReminder(true);
-  //   }
-  // };
-  const loadNoPagados = async () => {
-    // 1) Extrae page y pageSize de tu estado de paginación
-    const { page, pageSize } = paginationNP;
 
-    // 2) Úsalos en la URL
-    const res = await fetch(
-      `/api/campaigns/${campaignId}/no-pagados?page=${page}&pageSize=${pageSize}`
-    );
-    const { clientes, pagination } = await res.json();
-    // FILTRO: sólo la primera ocurrencia de cada clienteId
-    const seenCel = new Set();
-    const unicos = clientes.filter(c => {
-      if (seenCel.has(c.celular)) return false;
-      seenCel.add(c.celular);
-      return true;
-    });
-    // 3) Mapea para añadir un id único (por ejemplo, clienteId)
-    const filasConId = unicos.map((c, idx) => ({
-      id: c.cliente_id,      // por ejemplo: el PK de tu cliente
-      nombre: c.nombre,
-      celular: c.celular,
-      // …cualquier otro campo
-    }));
-
-    setNoPagados(filasConId);
-    setPaginationNP(paginationNP);
-    setShowReminder(true);
-};
-
-
-const handleSendReminder = async () => {
-  try {
-    const res = await fetch(`/api/campaigns/${campaignId}/send-recordatorio`, { method: "POST" });
-    const data = await res.json();
-    if (data.success) {
-      // muévete a un snackbar o alerta
-      console.log("Recordatorios enviados:", data.sentMessages);
-    }
-  } catch (err) {
-    console.error(err);
-  }
-};
+  const [openSelectModal, setOpenSelectModal] = useState(false);
+  const [gestores, setGestores] = useState([]);
+  const [selectedGestor, setSelectedGestor] = useState("");
+  const [filteredClients, setFilteredClients] = useState([]);
+  const [selectedClientIds, setSelectedClientIds] = useState([]);
 
   const {
     campaign,
@@ -100,38 +48,22 @@ const handleSendReminder = async () => {
     handleUploadClients,
     handleSendCampaign,
     snackbar,
+    campaignStats,
+    sendingInProgress,
   } = useCampaignDetail(campaignId);
 
-  // useEffect(() => {
-  //   if (campaignId) {
-  //     fetchCampaignDetail();
-  //   }
-  //   console.log("camapla",campaign);
-  //   setLoading1(true);
-  //   const fetchCR= async () => {
-  //       try {
-          
-  //         const res = await fetch(`/api/clientesRiesgo?page=${pagination.page}&pageSize=${pagination.pageSize}`);
-  //         const { clientes, total } = await res.json();
-          
-  //         console.log("Clientes recibidos:", clientes, "Total:", total);
-          
-  //         setClientesRiesgo(clientes);
-  //         setCR(total);
-  
-  //       } catch (error) {
-  //         console.error("❌ Error al obtener usuarios:", error);
-  //       } finally {
-  //         setLoading1(false);
-  //       }
-  //     };
-  //     fetchCR();
-  // }, [campaignId,pagination.page, pagination.pageSize]);
   useEffect(() => {
+    getGestores().then(setGestores);
+    console.log("GESTORES:", gestores);
+
+  }, []);
+
+  useEffect(() => {
+
     if (campaignId) {
       fetchCampaignDetail();
     }
-    console.log("camapla",campaign);
+    console.log("camapla", campaign);
   }, [campaignId]);
 
   const handleFileUpload = (event) => {
@@ -151,6 +83,7 @@ const handleSendReminder = async () => {
         id: index + 1,
         numero: row["Numero"],
         nombre: row["Nombre"],
+        gestor: row["Asesor"]
       }));
 
       setClients(formattedClients);
@@ -160,7 +93,6 @@ const handleSendReminder = async () => {
 
   const handleSaveClients = async () => {
     if (!file) return;
-    console.log("pasa handleSaveClients");
     setLoadingUpload(true);
     await handleUploadClients(file);
     setOpenModal(false);
@@ -169,370 +101,820 @@ const handleSendReminder = async () => {
     fetchCampaignDetail();
     setLoadingUpload(false);
   };
+  const handleChangeGestor = async (value) => {
+    setSelectedGestor(value);
+    const clientes = await getClientesPorGestor(value);
+    setFilteredClients(clientes);
+    setSelectedClientIds([]); // resetear selección
+  };
+  function dividirEnLotes(array, tamañoLote) {
+    const lotes = [];
+    for (let i = 0; i < array.length; i += tamañoLote) {
+      lotes.push(array.slice(i, i + tamañoLote));
+    }
+    return lotes;
+  }
+
+
 
   return (
-    <Box p={3} width="100%" maxWidth="1200px" margin="auto" height="100%">
-      {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" height="60vh">
-          <CircularProgress color="primary" />
-        </Box>
-      ) : error ? (
-        <Alert severity="error">{error}</Alert>
-      ) : (
-        <>
-          {/* 🔹 ENCABEZADO */}
-          <Box textAlign="center" mb={3} p={2} sx={{ bgcolor: "#007391", color: "white", borderRadius: 2 }}>
-            <Typography variant="h4" fontWeight="bold">📢 {campaign?.nombre_campanha}</Typography>
-          </Box>
-
-          {/* 🔹 INFORMACIÓN DE LA CAMPAÑA */}
-          <Card sx={{ bgcolor: "white", boxShadow: 2, mt: 2, p: 2 }}>
-            <CardContent>
-              <Typography variant="h6" color="#007391">📋 Información de la Campaña</Typography>
-              <Divider sx={{ my: 1, backgroundColor: "#005c6b" }} />
-              <Typography><strong>📄 Descripción:</strong> {campaign?.descripcion || "Sin descripción"}</Typography>
-              <Typography><strong>📅 Fecha de Creación:</strong> {campaign?.fecha_creacion ? new Date(campaign.fecha_creacion).toLocaleDateString() : "N/A"}</Typography>
-              <Typography><strong>⏳ Fecha Fin:</strong> {campaign?.fecha_fin ? new Date(campaign.fecha_fin).toLocaleDateString() : "No definida"}</Typography>
-              <Typography><strong>🔘 Estado:</strong> {campaign?.estado_campanha || "Desconocido"}</Typography>
-              <Typography><strong>👥 Número de Clientes:</strong> {pagination.total}</Typography>
-              <Typography><strong>📝 Template:</strong> {campaign?.template?.nombre_template || "No asignado"}</Typography>
-              <Typography><strong>📝 Mensaje:</strong> {campaign?.template?.mensaje || "No definido"}</Typography>
-            </CardContent>
-          </Card>
-
-          <Divider sx={{ my: 3 }} />
-
-          {/* 🔹 BOTONES DE ACCIÓN */}
-          <Box display="flex" justifyContent="space-between" my={2}>
-            <Button
-              variant="contained"
-              onClick={() => router.push("/campaigns")}
-              sx={{ backgroundColor: "#254e59", "&:hover": { backgroundColor: "#1a363d" } }}
-              startIcon={<ArrowBack />}
-            >
-              Volver
-            </Button>
-            <Button
-              variant="contained"
-              onClick={() => setOpenModal(true)}
-              sx={{ backgroundColor: "#007391", "&:hover": { backgroundColor: "#005c6b" } }}
-              startIcon={<UploadFile />}
-            >
-              Subir Clientes desde Excel
-            </Button>
-            <Button
-              variant="contained"
-              sx={{ backgroundColor: "#007391", "&:hover": { backgroundColor: "#005c6b" } }}
-              onClick={loadNoPagados}
-              startIcon={<UploadFile />}
-            >
-              Cargar no pagados
-            </Button>
-
-            {showReminder && (
-              <Button
-                variant="contained"
-                sx={{ backgroundColor: "#f57c00", "&:hover": { backgroundColor: "#ef6c00" } }}
-                onClick={handleSendReminder}
-                startIcon={<Send />}
-              >
-                Enviar Recordatorio
-              </Button>
-            )}
-            <Button
-              variant="contained"
-              onClick={handleSendCampaign}
-              sx={{ backgroundColor: "#388e3c", "&:hover": { backgroundColor: "#00600f" } }}
-              startIcon={<Send />}
-            >
-              Enviar Mensajes
-            </Button>
-          </Box>
-
-          {/* 🔹 TABLA DE CLIENTES */}
-          <CustomDataGrid
-            pagination={pagination}
-            setPagination={setPagination}
-            getRowId={row => row.celular}
-            // rows={campaignClients}
-            // totalRows={pagination.total}
-            rows={ showReminder ? noPagados : campaignClients }
-            totalRows={ showReminder ? paginationNP.total : pagination.total }
-            columns={[
-              //{ field: "id", headerName: "ID Cliente", flex: 1 },
-              { field: "nombre", headerName: "Nombre", flex: 1 },
-              { field: "celular", headerName: "Celular", flex: 1 },
-              //{ field: "gestor", headerName: "Gestor", flex: 1 },
-              {
-                field: "acciones",
-                headerName: "Acciones",
-                flex: 1,
-                renderCell: (params) => (
-                  <IconButton
-                    onClick={() => handleRemoveClient(params.row.id)}
-                    sx={{ color: "#D32F2F" }}
-                  >
-                    <Delete />
-                  </IconButton>
-                ),
-              },
-            ]}
-          />
-
-          {/* 🔹 MODAL DE CARGA DE CLIENTES */}
-          <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="md" fullWidth>
-            <DialogTitle>Subir Clientes desde Excel</DialogTitle>
-            <DialogContent>
-              <input ref={fileInputRef} type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setOpenModal(false)} color="primary">Cerrar</Button>
-              {file && (
-                <Button color="primary" variant="contained" onClick={handleSaveClients}>
-                  Subir Clientes
-                </Button>
-              )}
-            </DialogActions>
-          </Dialog>
-
-          {snackbar}
-
-          {/* 🔹 SPINNER DE CARGA */}
-          {loadingUpload && (
-            <Box sx={{
-              position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
-              backgroundColor: "rgba(0, 0, 0, 0.5)", display: "flex",
-              justifyContent: "center", alignItems: "center", zIndex: 9999,
-            }}>
-              <CircularProgress size={60} color="primary" />
+    <Fade in timeout={800}>
+      <Box sx={{ 
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #f8fbff 0%, #e9f4f8 50%, #f0f9ff 100%)',
+        p: 2
+      }}>
+        <Box width="100%" maxWidth="1400px" margin="auto">
+          {loading ? (
+            <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" height="60vh">
+              <CircularProgress size={60} sx={{ color: '#007391', mb: 2 }} />
+              <Typography variant="h6" color="#007391">Cargando detalles de la campaña...</Typography>
             </Box>
+          ) : error ? (
+            <Fade in>
+              <Alert 
+                severity="error" 
+                sx={{ 
+                  borderRadius: 2,
+                  boxShadow: '0 4px 20px rgba(244, 67, 54, 0.1)',
+                  '& .MuiAlert-icon': { fontSize: '2rem' }
+                }}
+              >
+                {error}
+              </Alert>
+            </Fade>
+          ) : (
+            <>
+              {/* HEADER PRINCIPAL CON GRADIENTE */}
+              <Fade in timeout={1000}>
+                <Paper 
+                  elevation={0}
+                  sx={{
+                    background: 'linear-gradient(135deg, #007391 0%, #005c6b 50%, #254e59 100%)',
+                    color: 'white',
+                    borderRadius: 3,
+                    p: 4,
+                    mb: 4,
+                    position: 'relative',
+                    overflow: 'hidden',
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      opacity: 0.8,
+                      transform: 'skewY(-1deg)',
+                      transformOrigin: 'top left'
+                    }
+                  }}
+                >
+                  <Box position="relative" zIndex={1}>
+                    <Grid container alignItems="center" spacing={3}>
+                      <Grid item>
+                        <Avatar 
+                          sx={{ 
+                            bgcolor: 'rgba(255, 255, 255, 0.2)', 
+                            width: 60, 
+                            height: 60,
+                            backdropFilter: 'blur(10px)'
+                          }}
+                        >
+                          <Campaign sx={{ fontSize: '2rem', color: 'white' }} />
+                        </Avatar>
+                      </Grid>
+                      <Grid item xs>
+                        <Typography 
+                          variant="h3" 
+                          fontWeight="bold" 
+                          sx={{ 
+                            textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                            mb: 1
+                          }}
+                        >
+                          {campaign?.nombre_campanha}
+                        </Typography>
+                        <Typography 
+                          variant="h6" 
+                          sx={{ 
+                            opacity: 0.9,
+                            fontWeight: 300
+                          }}
+                        >
+                          Detalle de Campaña WhatsApp
+                        </Typography>
+                      </Grid>
+                      <Grid item>
+                        <Chip 
+                          label={campaign?.estado_campanha || "Activa"}
+                          sx={{
+                            bgcolor: 'rgba(56, 142, 60, 0.8)',
+                            color: 'white',
+                            fontWeight: 'bold',
+                            fontSize: '1rem',
+                            px: 2,
+                            py: 1,
+                            backdropFilter: 'blur(10px)'
+                          }}
+                          icon={<CheckCircle />}
+                        />
+                      </Grid>
+                    </Grid>
+                  </Box>
+                </Paper>
+              </Fade>
+
+              {/* INFORMACIÓN DE LA CAMPAÑA CON CARDS ELEGANTES */}
+              <Fade in timeout={1200}>
+                <Grid container spacing={3} mb={4}>
+                  {/* Card Principal de Información */}
+                  <Grid item xs={12} lg={8}>
+                    <Paper 
+                      elevation={0}
+                      sx={{ 
+                        borderRadius: 3,
+                        background: 'linear-gradient(135deg, #ffffff 0%, #fafbfc 100%)',
+                        border: '1px solid rgba(0, 115, 145, 0.1)',
+                        boxShadow: '0 8px 32px rgba(0, 115, 145, 0.08)',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <Box 
+                        sx={{
+                          background: 'linear-gradient(135deg, #007391 0%, #005c6b 100%)',
+                          color: 'white',
+                          p: 3
+                        }}
+                      >
+                        <Typography variant="h5" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Info /> Información de la Campaña
+                        </Typography>
+                      </Box>
+                      
+                      <CardContent sx={{ p: 4 }}>
+                        <Grid container spacing={3}>
+                          <Grid item xs={12} md={6}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                              <Message sx={{ color: '#007391', mr: 2 }} />
+                              <Box>
+                                <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 600 }}>
+                                  DESCRIPCIÓN
+                                </Typography>
+                                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                  {campaign?.descripcion || "Sin descripción"}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Grid>
+                          
+                          <Grid item xs={12} md={6}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                              <DateRange sx={{ color: '#007391', mr: 2 }} />
+                              <Box>
+                                <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 600 }}>
+                                  FECHA DE CREACIÓN
+                                </Typography>
+                                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                  {campaign?.fecha_creacion ? new Date(campaign.fecha_creacion).toLocaleDateString('es-ES', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                  }) : "N/A"}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Grid>
+                          
+                          <Grid item xs={12} md={6}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                              <Schedule sx={{ color: '#007391', mr: 2 }} />
+                              <Box>
+                                <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 600 }}>
+                                  FECHA FIN
+                                </Typography>
+                                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                  {campaign?.fecha_fin ? new Date(campaign.fecha_fin).toLocaleDateString('es-ES', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                  }) : "No definida"}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Grid>
+                          
+                          <Grid item xs={12} md={6}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                              <Group sx={{ color: '#007391', mr: 2 }} />
+                              <Box>
+                                <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 600 }}>
+                                  NÚMERO DE CLIENTES
+                                </Typography>
+                                <Typography variant="h6" sx={{ fontWeight: 700, color: '#007391' }}>
+                                  {pagination.total.toLocaleString()}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Grid>
+                        </Grid>
+                        
+                        <Divider sx={{ my: 3, borderColor: 'rgba(0, 115, 145, 0.1)' }} />
+                        
+                        {/* Template Information */}
+                        <Box 
+                          sx={{ 
+                            bgcolor: 'rgba(0, 115, 145, 0.03)',
+                            borderRadius: 2,
+                            p: 3,
+                            border: '1px solid rgba(0, 115, 145, 0.1)'
+                          }}
+                        >
+                          <Typography variant="h6" sx={{ color: '#007391', mb: 2, fontWeight: 600 }}>
+                            📝 Template de Mensaje
+                          </Typography>
+                          <Grid container spacing={2}>
+                            <Grid item xs={12} md={6}>
+                              <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 600 }}>
+                                NOMBRE DEL TEMPLATE
+                              </Typography>
+                              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                {campaign?.template?.nombre_template || "No asignado"}
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={12}>
+                              <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 600 }}>
+                                CONTENIDO DEL MENSAJE
+                              </Typography>
+                              <Paper 
+                                sx={{ 
+                                  p: 2, 
+                                  bgcolor: '#f8f9fa', 
+                                  border: '1px solid #e9ecef',
+                                  borderRadius: 2,
+                                  mt: 1
+                                }}
+                              >
+                                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', fontStyle: 'italic' }}>
+                                  {campaign?.template?.mensaje || "No definido"}
+                                </Typography>
+                              </Paper>
+                            </Grid>
+                          </Grid>
+                        </Box>
+                      </CardContent>
+                    </Paper>
+                  </Grid>
+                  
+                  {/* Panel de Métricas Rápidas */}
+                  <Grid item xs={12} lg={4}>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12}>
+                        <Paper 
+                          elevation={0}
+                          sx={{ 
+                            p: 3, 
+                            borderRadius: 3,
+                            background: 'linear-gradient(135deg, #388e3c 0%, #2e7d32 100%)',
+                            color: 'white',
+                            textAlign: 'center'
+                          }}
+                        >
+                          <Assessment sx={{ fontSize: '3rem', mb: 1, opacity: 0.8 }} />
+                          <Typography variant="h4" fontWeight="bold">
+                            {pagination.total}
+                          </Typography>
+                          <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                            Total de Contactos
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                      
+                      <Grid item xs={12}>
+                        <Paper 
+                          elevation={0}
+                          sx={{ 
+                            p: 3, 
+                            borderRadius: 3,
+                            background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
+                            color: 'white',
+                            textAlign: 'center'
+                          }}
+                        >
+                          <Phone sx={{ fontSize: '3rem', mb: 1, opacity: 0.8 }} />
+                          <Typography variant="h4" fontWeight="bold">
+                            WhatsApp
+                          </Typography>
+                          <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                            Canal de Comunicación
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                    </Grid>
+                  </Grid>
+                </Grid>
+              </Fade>
+
+              {/* BOTONES DE ACCIÓN CON MEJOR DISEÑO */}
+              <Fade in timeout={1400}>
+                <Box 
+                  display="flex" 
+                  justifyContent="space-between" 
+                  flexWrap="wrap"
+                  gap={2}
+                  my={3}
+                  p={3}
+                  sx={{ 
+                    bgcolor: 'rgba(255, 255, 255, 0.8)',
+                    borderRadius: 3,
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                  }}
+                >
+                  <Button
+                    variant="contained"
+                    onClick={() => router.push("/campaigns")}
+                    size="large"
+                    sx={{ 
+                      background: 'linear-gradient(135deg, #254e59 0%, #1a363d 100%)',
+                      borderRadius: 2,
+                      px: 4,
+                      py: 1.5,
+                      textTransform: 'none',
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      boxShadow: '0 4px 20px rgba(37, 78, 89, 0.3)',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 6px 25px rgba(37, 78, 89, 0.4)'
+                      },
+                      transition: 'all 0.3s ease'
+                    }}
+                    startIcon={<ArrowBack />}
+                  >
+                    Volver a Campañas
+                  </Button>
+                  
+                  <Button
+                    variant="contained"
+                    onClick={handleSendCampaign}
+                    disabled={sendingInProgress}
+                    size="large"
+                    sx={{ 
+                      background: sendingInProgress 
+                        ? 'linear-gradient(135deg, #ccc 0%, #aaa 100%)' 
+                        : 'linear-gradient(135deg, #388e3c 0%, #2e7d32 100%)',
+                      borderRadius: 2,
+                      px: 4,
+                      py: 1.5,
+                      textTransform: 'none',
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      boxShadow: sendingInProgress 
+                        ? 'none'
+                        : '0 4px 20px rgba(56, 142, 60, 0.3)',
+                      '&:hover': {
+                        transform: sendingInProgress ? 'none' : 'translateY(-2px)',
+                        boxShadow: sendingInProgress 
+                          ? 'none'
+                          : '0 6px 25px rgba(56, 142, 60, 0.4)'
+                      },
+                      transition: 'all 0.3s ease'
+                    }}
+                    startIcon={sendingInProgress ? <CircularProgress size={20} color="inherit" /> : <Send />}
+                  >
+                    {sendingInProgress ? "Enviando Mensajes..." : "Enviar Campaña"}
+                  </Button>
+                </Box>
+              </Fade>
+
+              {/* 🔹 ESTADÍSTICAS DE CAMPAÑA */}
+              {/*<Fade in timeout={1600}>
+                <Box mb={4}>
+                  <CampaignStatsCard 
+                    campaignStats={campaignStats} 
+                    sendingInProgress={sendingInProgress} 
+                  />
+                </Box>
+              </Fade>*/}
+
+              {/* 🔹 TABLA DE CLIENTES CON DISEÑO MEJORADO */}
+              <Fade in timeout={1800}>
+                <Paper 
+                  elevation={0}
+                  sx={{
+                    borderRadius: 3,
+                    background: 'linear-gradient(135deg, #ffffff 0%, #fafbfc 100%)',
+                    border: '1px solid rgba(0, 115, 145, 0.1)',
+                    boxShadow: '0 8px 32px rgba(0, 115, 145, 0.08)',
+                    overflow: 'hidden',
+                    mb: 4
+                  }}
+                >
+                  <Box 
+                    sx={{
+                      background: 'linear-gradient(135deg, #007391 0%, #005c6b 100%)',
+                      color: 'white',
+                      p: 3,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 2
+                    }}
+                  >
+                    <Group />
+                    <Typography variant="h5" fontWeight="bold">
+                      Lista de Clientes ({pagination.total})
+                    </Typography>
+                  </Box>
+                  
+                  <Box p={3}>
+                    <CustomDataGrid
+                      pagination={pagination}
+                      setPagination={setPagination}
+                      rows={campaignClients}
+                      totalRows={pagination.total}
+                      columns={[
+                        { 
+                          field: "id", 
+                          headerName: "ID Cliente", 
+                          flex: 1,
+                          renderHeader: () => (
+                            <Typography fontWeight="bold" color="#007391">
+                              ID Cliente
+                            </Typography>
+                          )
+                        },
+                        { 
+                          field: "nombre", 
+                          headerName: "Nombre", 
+                          flex: 1,
+                          renderHeader: () => (
+                            <Typography fontWeight="bold" color="#007391">
+                              <Person sx={{ mr: 1, fontSize: '1rem', verticalAlign: 'middle' }} />
+                              Nombre
+                            </Typography>
+                          )
+                        },
+                        { 
+                          field: "celular", 
+                          headerName: "Celular", 
+                          flex: 1,
+                          renderHeader: () => (
+                            <Typography fontWeight="bold" color="#007391">
+                              <Phone sx={{ mr: 1, fontSize: '1rem', verticalAlign: 'middle' }} />
+                              Celular
+                            </Typography>
+                          )
+                        },
+                        { 
+                          field: "gestor", 
+                          headerName: "Gestor", 
+                          flex: 1,
+                          renderHeader: () => (
+                            <Typography fontWeight="bold" color="#007391">
+                              <Business sx={{ mr: 1, fontSize: '1rem', verticalAlign: 'middle' }} />
+                              Gestor
+                            </Typography>
+                          )
+                        },
+                        {
+                          field: "acciones",
+                          headerName: "Acciones",
+                          flex: 1,
+                          renderHeader: () => (
+                            <Typography fontWeight="bold" color="#007391">
+                              Acciones
+                            </Typography>
+                          ),
+                          renderCell: (params) => (
+                            <IconButton
+                              onClick={() => handleRemoveClient(params.row.id)}
+                              sx={{ 
+                                color: "#D32F2F",
+                                '&:hover': {
+                                  bgcolor: 'rgba(211, 47, 47, 0.1)',
+                                  transform: 'scale(1.1)'
+                                },
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              <Delete />
+                            </IconButton>
+                          ),
+                        },
+                      ]}
+                    />
+                  </Box>
+                </Paper>
+              </Fade>
+
+              {/* MODALES Y DIÁLOGOS CON MEJOR DISEÑO */}
+              <Dialog 
+                open={openModal} 
+                onClose={() => setOpenModal(false)} 
+                maxWidth="md" 
+                fullWidth
+                PaperProps={{
+                  sx: {
+                    borderRadius: 3,
+                    background: 'linear-gradient(135deg, #ffffff 0%, #fafbfc 100%)'
+                  }
+                }}
+              >
+                <DialogTitle sx={{ 
+                  bgcolor: '#007391', 
+                  color: 'white', 
+                  textAlign: 'center',
+                  fontWeight: 'bold',
+                  fontSize: '1.3rem'
+                }}>
+                  <UploadFile sx={{ mr: 1, verticalAlign: 'middle' }} />
+                  Subir Clientes desde Excel
+                </DialogTitle>
+                <DialogContent sx={{ p: 4 }}>
+                  <Box 
+                    sx={{ 
+                      border: '2px dashed #007391',
+                      borderRadius: 2,
+                      p: 4,
+                      textAlign: 'center',
+                      bgcolor: 'rgba(0, 115, 145, 0.02)'
+                    }}
+                  >
+                    <input 
+                      ref={fileInputRef} 
+                      type="file" 
+                      accept=".xlsx, .xls" 
+                      onChange={handleFileUpload}
+                      style={{
+                        padding: '10px',
+                        borderRadius: '8px',
+                        border: '1px solid #007391',
+                        backgroundColor: 'white'
+                      }}
+                    />
+                  </Box>
+                </DialogContent>
+                <DialogActions sx={{ p: 3, gap: 2 }}>
+                  <Button 
+                    onClick={() => setOpenModal(false)} 
+                    variant="outlined"
+                    sx={{ 
+                      borderColor: '#007391',
+                      color: '#007391',
+                      '&:hover': { borderColor: '#005c6b', bgcolor: 'rgba(0, 115, 145, 0.05)' }
+                    }}
+                  >
+                    Cerrar
+                  </Button>
+                  {file && (
+                    <Button 
+                      color="primary" 
+                      variant="contained" 
+                      onClick={handleSaveClients}
+                      sx={{ 
+                        background: 'linear-gradient(135deg, #007391 0%, #005c6b 100%)',
+                        '&:hover': { background: 'linear-gradient(135deg, #005c6b 0%, #254e59 100%)' }
+                      }}
+                    >
+                      Subir Clientes
+                    </Button>
+                  )}
+                </DialogActions>
+              </Dialog>
+
+              <Dialog 
+                open={openSelectModal} 
+                onClose={() => setOpenSelectModal(false)} 
+                maxWidth="md" 
+                fullWidth
+                PaperProps={{
+                  sx: {
+                    borderRadius: 3,
+                    background: 'linear-gradient(135deg, #ffffff 0%, #fafbfc 100%)'
+                  }
+                }}
+              >
+                <DialogTitle sx={{ 
+                  bgcolor: '#007391', 
+                  color: 'white', 
+                  textAlign: 'center',
+                  fontWeight: 'bold',
+                  fontSize: '1.3rem'
+                }}>
+                  <Group sx={{ mr: 1, verticalAlign: 'middle' }} />
+                  Seleccionar Clientes por Gestor
+                </DialogTitle>
+                <DialogContent sx={{ p: 4 }}>
+                  <Box marginBottom={3}>
+                    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, color: '#007391' }}>
+                      Seleccionar Gestor:
+                    </Typography>
+                    <select
+                      value={selectedGestor}
+                      onChange={(e) => handleChangeGestor(e.target.value)}
+                      style={{ 
+                        width: "100%", 
+                        padding: '12px 16px',
+                        borderRadius: '8px',
+                        border: '2px solid #007391',
+                        fontSize: '1rem',
+                        backgroundColor: 'white'
+                      }}
+                    >
+                      <option value="">Selecciona un gestor</option>
+                      {gestores.map((g, index) => (
+                        <option key={index} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </Box>
+                  
+                  <Box display="flex" justifyContent="flex-end" gap={2} mb={3}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => {
+                        const allIds = filteredClients.map((c) => c.cliente_id);
+                        setSelectedClientIds(allIds);
+                      }}
+                      sx={{ 
+                        borderColor: '#388e3c',
+                        color: '#388e3c',
+                        '&:hover': { borderColor: '#2e7d32', bgcolor: 'rgba(56, 142, 60, 0.05)' }
+                      }}
+                    >
+                      Seleccionar todos
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => setSelectedClientIds([])}
+                      sx={{ 
+                        borderColor: '#ff9800',
+                        color: '#ff9800',
+                        '&:hover': { borderColor: '#f57c00', bgcolor: 'rgba(255, 152, 0, 0.05)' }
+                      }}
+                    >
+                      Deseleccionar todos
+                    </Button>
+                  </Box>
+                  
+                  <Paper elevation={0} sx={{ border: '1px solid rgba(0, 115, 145, 0.2)', borderRadius: 2 }}>
+                    <Table>
+                      <TableHead sx={{ bgcolor: 'rgba(0, 115, 145, 0.05)' }}>
+                        <TableRow>
+                          <TableCell></TableCell>
+                          <TableCell><Typography fontWeight="bold" color="#007391">ID</Typography></TableCell>
+                          <TableCell><Typography fontWeight="bold" color="#007391">Nombre</Typography></TableCell>
+                          <TableCell><Typography fontWeight="bold" color="#007391">Celular</Typography></TableCell>
+                          <TableCell><Typography fontWeight="bold" color="#007391">Gestor</Typography></TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {filteredClients.map((cliente) => (
+                          <TableRow 
+                            key={cliente.cliente_id}
+                            sx={{ 
+                              '&:hover': { bgcolor: 'rgba(0, 115, 145, 0.02)' },
+                              '&:nth-of-type(odd)': { bgcolor: 'rgba(0, 115, 145, 0.01)' }
+                            }}
+                          >
+                            <TableCell>
+                              <input
+                                type="checkbox"
+                                checked={selectedClientIds.includes(cliente.cliente_id)}
+                                onChange={() => {
+                                  setSelectedClientIds((prev) =>
+                                    prev.includes(cliente.cliente_id)
+                                      ? prev.filter((id) => id !== cliente.cliente_id)
+                                      : [...prev, cliente.cliente_id]
+                                  );
+                                }}
+                                style={{ transform: 'scale(1.2)' }}
+                              />
+                            </TableCell>
+                            <TableCell>{cliente.cliente_id}</TableCell>
+                            <TableCell>{cliente.nombre}</TableCell>
+                            <TableCell>{cliente.celular}</TableCell>
+                            <TableCell>{cliente.gestor}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </Paper>
+                </DialogContent>
+                <DialogActions sx={{ p: 3, gap: 2 }}>
+                  <Button 
+                    onClick={() => setOpenSelectModal(false)}
+                    variant="outlined"
+                    sx={{ 
+                      borderColor: '#007391',
+                      color: '#007391',
+                      '&:hover': { borderColor: '#005c6b', bgcolor: 'rgba(0, 115, 145, 0.05)' }
+                    }}
+                  >
+                    Cerrar
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const lotes = dividirEnLotes(selectedClientIds, 100);
+                        for (const lote of lotes) {
+                          await axiosInstance.post(`/campaings/add-clients/${campaignId}`, {
+                            clientIds: lote,
+                          });
+                        }
+                        setOpenSelectModal(false);
+                        fetchCampaignDetail();
+                        alert("✅ Clientes agregados por lotes.");
+                      } catch (err) {
+                        console.error("❌ Error al agregar clientes por gestor:", err);
+                        alert("❌ Error al agregar clientes. Revisa consola.");
+                      }
+                    }}
+                    variant="contained"
+                    disabled={selectedClientIds.length === 0}
+                    sx={{ 
+                      background: selectedClientIds.length === 0 
+                        ? '#ccc' 
+                        : 'linear-gradient(135deg, #388e3c 0%, #2e7d32 100%)',
+                      '&:hover': { 
+                        background: selectedClientIds.length === 0 
+                          ? '#ccc' 
+                          : 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)'
+                      }
+                    }}
+                  >
+                    Agregar a campaña ({selectedClientIds.length})
+                  </Button>
+                </DialogActions>
+              </Dialog>
+
+              {snackbar}
+
+              {/* OVERLAY DE CARGA CON MEJOR DISEÑO */}
+              {loadingUpload && (
+                <Fade in>
+                  <Box sx={{
+                    position: "fixed", 
+                    top: 0, 
+                    left: 0, 
+                    width: "100%", 
+                    height: "100%",
+                    background: 'linear-gradient(135deg, rgba(0, 115, 145, 0.8) 0%, rgba(0, 92, 107, 0.9) 100%)',
+                    backdropFilter: 'blur(10px)',
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center", 
+                    alignItems: "center", 
+                    zIndex: 9999,
+                  }}>
+                    <CircularProgress 
+                      size={80} 
+                      sx={{ 
+                        color: 'white',
+                        mb: 3
+                      }} 
+                    />
+                    <Typography 
+                      variant="h5" 
+                      sx={{ 
+                        color: 'white',
+                        fontWeight: 600,
+                        textAlign: 'center',
+                        textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                      }}
+                    >
+                      Procesando clientes...
+                    </Typography>
+                    <Typography 
+                      variant="body1" 
+                      sx={{ 
+                        color: 'rgba(255, 255, 255, 0.8)',
+                        mt: 1,
+                        textAlign: 'center'
+                      }}
+                    >
+                      Por favor espere mientras se cargan los datos
+                    </Typography>
+                  </Box>
+                </Fade>
+              )}
+            </>
           )}
-        </>
-      )}
-    </Box>
-  );
-  //const columns = [
-    //{ field: "id_contrato", headerName: "ID Contrato", flex: 1, minWidth: 120 },
-    // { field: "documento_identidad", headerName: "DNI", flex: 1, minWidth: 120 },
-    // { field: "nombreCompleto", headerName: "Nombre", flex: 1, minWidth: 150 },
-    // { field: "celular", headerName: "Teléfono", flex: 1, minWidth: 120 },
-    //{ field: "tipo_codigo", headerName: "Tipo de Código", flex: 1, minWidth: 120 },
-    //{ field: "codigo_pago", headerName: "Código", flex: 1, minWidth: 120 },
-    //{ field: "fecha_vencimiento", headerName: "Fecha de vencimiento", flex: 1, minWidth: 120 },
-    //{ field: "pago_realizado", headerName: "Estado de Pago", flex: 1, minWidth: 120 },
-  //];
-  // return (
-  //   <Box p={3} width="100%" maxWidth="1200px" margin="auto" height="100%">
-  //     {loading ? (
-  //       <Box display="flex" justifyContent="center" alignItems="center" height="60vh">
-  //         <CircularProgress color="primary" />
-  //       </Box>
-  //     ) : error ? (
-  //       <Alert severity="error">{error}</Alert>
-  //     ) : (
-  //       <>
-  //         {/* 🔹 ENCABEZADO */}
-  //         <Box textAlign="center" mb={3} p={2} sx={{ bgcolor: "#007391", color: "white", borderRadius: 2 }}>
-  //           <Typography variant="h4" fontWeight="bold">📢 {campaign?.nombre_campanha}</Typography>
-  //         </Box>
-
-  //         {/* 🔹 INFORMACIÓN DE LA CAMPAÑA */}
-  //         <Card sx={{ bgcolor: "white", boxShadow: 2, mt: 2, p: 2 }}>
-  //           <CardContent>
-  //             <Typography variant="h6" color="#007391">📋 Información de la Campaña</Typography>
-  //             <Divider sx={{ my: 1, backgroundColor: "#005c6b" }} />
-  //             <Typography><strong>📄 Descripción:</strong> {campaign?.descripcion || "Sin descripción"}</Typography>
-  //             <Typography><strong>📅 Fecha de Creación:</strong> {campaign?.fecha_creacion ? new Date(campaign.fecha_creacion).toLocaleDateString() : "N/A"}</Typography>
-  //             <Typography><strong>⏳ Fecha Fin:</strong> {campaign?.fecha_fin ? new Date(campaign.fecha_fin).toLocaleDateString() : "No definida"}</Typography>
-  //             <Typography><strong>🔘 Estado:</strong> {campaign?.estado_campanha || "Desconocido"}</Typography>
-  //             <Typography><strong>👥 Número de Clientes:</strong> {pagination.total}</Typography>
-  //             <Typography><strong>📝 Template:</strong> {campaign?.template?.nombre_template || "No asignado"}</Typography>
-  //             <Typography><strong>📝 Mensaje:</strong> {campaign?.template?.mensaje || "No definido"}</Typography>
-  //           </CardContent>
-  //         </Card>
-
-  //         <Divider sx={{ my: 3 }} />
-
-  //         {/* 🔹 BOTONES DE ACCIÓN */}
-  //         <Box display="flex" justifyContent="space-between" my={2}>
-  //           <Button
-  //             variant="contained"
-  //             onClick={() => router.push("/campaigns")}
-  //             sx={{ backgroundColor: "#254e59", "&:hover": { backgroundColor: "#1a363d" } }}
-  //             startIcon={<ArrowBack />}
-  //           >
-  //             Volver
-  //           </Button>
-  //           {/* <Button
-  //             variant="contained"
-  //             onClick={() => handleCargarClientes(true)}
-  //             sx={{ backgroundColor: "#007391", "&:hover": { backgroundColor: "#005c6b" } }}
-  //             startIcon={<UploadFile />}
-  //           >
-  //             Subir Clientes desde Excel
-  //           </Button> */}
-
-  //           <Button
-  //             variant="contained"
-  //             onClick={handleSaveClients}
-  //             sx={{ backgroundColor: "#007391", "&:hover": { backgroundColor: "#005c6b" } }}
-  //             startIcon={<UploadFile />}
-  //           >
-  //             Cargar Clientes
-  //           </Button>
-
-  //           <Button
-  //             variant="contained"
-  //             onClick={handleSendCampaign}
-  //             sx={{ backgroundColor: "#388e3c", "&:hover": { backgroundColor: "#00600f" } }}
-  //             startIcon={<Send />}
-  //           >
-  //             Enviar Mensajes
-  //           </Button>
-  //         </Box>
-
-  //         {/* 🔹 TABLA DE CLIENTES */}
-  //         {/* <CustomDataGrid
-  //           pagination={pagination}
-  //           setPagination={setPagination}
-  //           rows={campaignClients}
-  //           totalRows={pagination.total}
-  //           columns={[
-  //             { field: "id_contrato", headerName: "Código Contrato", flex: 1, minWidth: 120 },
-  //             { field: "documento_identidad", headerName: "DNI", flex: 1, minWidth: 120 },
-  //             { field: "nombreCompleto", headerName: "Nombre", flex: 1, minWidth: 150 },
-  //             { field: "celular", headerName: "Teléfono", flex: 1, minWidth: 120 },
-  //             { field: "tipo_codigo", headerName: "Tipo de Código", flex: 1, minWidth: 120 },
-  //             { field: "codigo_pago", headerName: "Código", flex: 1, minWidth: 120 },
-  //             { field: "pago_realizado", headerName: "Estado de Pago", flex: 1, minWidth: 120 },
-  //             {
-  //               field: "acciones",
-  //               headerName: "Acciones",
-  //               flex: 1,
-  //               renderCell: (params) => (
-  //                 <IconButton
-  //                   onClick={() => handleRemoveClient(params.row.cliente_id)}
-  //                   sx={{ color: "#D32F2F" }}
-  //                 >
-  //                   <Delete />
-  //                 </IconButton>
-  //               ),
-  //             },
-  //           ]}
-  //         /> */}
-  //         <div className="bg-white p-4 rounded-md shadow-md mt-6">
-  //           <DataGrid
-  //             rows={campaignClients}
-  //             columns={[
-  //               { field: "id_contrato", headerName: "Código Contrato", flex: 1, minWidth: 120,
-  //                 renderCell: (params) => params.row.codigo_pago ? params.row.codigo_pago.id_contrato : "Sin contrato"
-  //               },
-  //               { field: "documento_identidad", headerName: "DNI", flex: 1, minWidth: 120 },
-  //               { field: "nombreCompleto", headerName: "Nombre", flex: 1, minWidth: 150 },
-  //               { field: "celular", headerName: "Teléfono", flex: 1, minWidth: 120 },
-  //               { field: "tipo_codigo", headerName: "Tipo de Código", flex: 1, minWidth: 120,
-  //                 renderCell: (params) => params.row.codigo_pago ? params.row.codigo_pago.tipo_codigo : "N/A"
-  //               },
-  //               { field: "codigo", headerName: "Código", flex: 1, minWidth: 120,
-  //                 renderCell: (params) => params.row.codigo_pago ? params.row.codigo_pago.codigo : "N/A"
-  //               },
-  //               { field: "pago_realizado", headerName: "Estado de Pago", flex: 1, minWidth: 120,
-  //                 renderCell: (params) => params.row.codigo_pago ? params.row.codigo_pago.pago_realizado : "Pendiente"
-  //               },
-  //               {
-  //                 field: "acciones",
-  //                 headerName: "Acciones",
-  //                 flex: 1,
-  //                 renderCell: (params) => (
-  //                   <IconButton
-  //                     onClick={() => handleRemoveClient(params.row.cliente_id)}
-  //                     sx={{ color: "#D32F2F" }}
-  //                   >
-  //                     <Delete />
-  //                   </IconButton>
-  //                 ),
-  //               },
-  //             ]}
-  //             pagination
-  //             paginationMode="server"
-  //             rowCount={pagination.total}
-  //             pageSizeOptions={[5, 10, 20, 50]} // 🔹 Opciones de filas por página
-  //             paginationModel={{
-  //               page: pagination.page - 1, // 🔹 DataGrid usa base 0
-  //               pageSize: pagination.pageSize,
-  //             }}
-  //             onPaginationModelChange={({ page, pageSize }) => {
-  //               setPagination((prev) => ({ ...prev, page: page + 1, pageSize })); // 🔹 Reactualiza el estado de paginación
-  //             }}
-  //             sortingMode="server"
-  //             sortModel={sortModel}
-  //             onSortModelChange={setSortModel}
-  //             autoHeight
-  //           />
-  //         </div>
-  //         {/* <div className="bg-white p-4 rounded-md shadow-md mt-6">
-                            
-  //                           <DataGrid
-  //                             rows={clientesRiesgo}
-  //                             columns={columns}
-  //                             pagination
-  //                             paginationMode="server"
-  //                             rowCount={totalCR}
-  //                             pageSizeOptions={[5, 10, 20, 50]} // 🔹 Opciones de filas por página
-  //                             paginationModel={{
-  //                               page: pagination.page - 1, // 🔹 DataGrid usa base 0
-  //                               pageSize: pagination.pageSize,
-  //                             }}
-  //                             onPaginationModelChange={({ page, pageSize }) => {
-  //                               if (pagination.page !== page + 1 || pagination.pageSize !== pageSize) {
-  //                                 setPagination((prev) => ({ ...prev, page: page + 1, pageSize }));
-  //                               }
-  //                             }}
-                              
-  //                             sortingMode="client"
-  //                             sortModel={sortModel}
-  //                             onSortModelChange={setSortModel}
-  //                             loading={loading}
-  //                             getRowId={(row) => row.c_id} 
-  //                           />
-  //                           {openModal && <UsuarioModal open={openModal} onClose={handleCloseModal} onSave={handleSave} user={editingUser} />} 
-  //                         </div> */}
-
           
-
-
-  //         {/* 🔹 MODAL DE CARGA DE CLIENTES */}
-  //         <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="md" fullWidth>
-  //           <DialogTitle>Subir Clientes desde Excel</DialogTitle>
-  //           <DialogContent>
-  //             <input ref={fileInputRef} type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
-  //           </DialogContent>
-  //           <DialogActions>
-  //             <Button onClick={() => setOpenModal(false)} color="primary">Cerrar</Button>
-  //             {file && (
-  //               <Button color="primary" variant="contained" onClick={handleSaveClients}>
-  //                 Subir Clientes
-  //               </Button>
-  //             )}
-  //           </DialogActions>
-  //         </Dialog>
-
-  //         {snackbar}
-
-  //         {/* 🔹 SPINNER DE CARGA */}
-  //         {loadingUpload && (
-  //           <Box sx={{
-  //             position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
-  //             backgroundColor: "rgba(0, 0, 0, 0.5)", display: "flex",
-  //             justifyContent: "center", alignItems: "center", zIndex: 9999,
-  //           }}>
-  //             <CircularProgress size={60} color="primary" />
-  //           </Box>
-  //         )}
-  //       </>
-  //     )}
-  //   </Box>
-  // );
+          {campaignId && (
+            <Fade in timeout={2000}>
+              <Box mt={4}>
+                <ContactoStats campaignId={campaignId} />
+              </Box>
+            </Fade>
+          )}
+        </Box>
+      </Box>
+    </Fade>
+  );
 };
 
 export default CampaignDetailPage;

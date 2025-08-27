@@ -63,9 +63,9 @@ export const deleteCampaign = async (campaignId) => {
 
 
 // 🔹 Obtener detalle de una campaña con clientes paginados
+// 🔹 Obtener detalle de una campaña con clientes paginados
 export const getCampaignById = async (id, page = 1, pageSize = 10) => {
-    console.log("🔹 ID recibido:", id);  // <-- Verifica que el ID es correcto
-    const response = await axiosInstance.get(`/campaigns/${id}/clientes`, {
+    const response = await axiosInstance.get(`/campaings/${id}/clientes`, {
       params: { page, pageSize },
     });
     return response.data;
@@ -89,6 +89,17 @@ export const removeClientFromCampaign = async (id, clientId) => {
       throw new Error(error.response?.data?.error || "Error al actualizar la campaña");
     }
   };
+
+  export const getGestores = async () => {
+    try {
+      const response = await axiosInstance.get("/gestores");
+      return response.data;
+    } catch (error) {
+      console.error("Error al obtener gestores:", error);
+      return [];
+    }
+  };
+
 
   export const sendCampaignMessages = async (campaignId) => {
   try {

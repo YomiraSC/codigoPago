@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { 
-  getCampaignById, 
-  removeClientFromCampaign, 
-  uploadClients, 
-  sendCampaignMessages 
+import {
+  getCampaignById,
+  removeClientFromCampaign,
+  uploadClients,
+  sendCampaignMessages
 } from "../../services/campaignService";
-import { Snackbar, Alert } from "@mui/material"; 
+import { Snackbar, Alert } from "@mui/material";
 
 const useCampaignDetail = (id) => {
   const [campaign, setCampaign] = useState(null);
@@ -16,17 +16,18 @@ const useCampaignDetail = (id) => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+  const [campaignStats, setCampaignStats] = useState(null);
+  const [sendingInProgress, setSendingInProgress] = useState(false);
 
   const fetchCampaignDetail = async () => {
     setLoading(true);
     try {
-      const { campanha_id, descripcion, nombre_campanha, fecha_creacion, fecha_fin, estado_campanha, 
-              mensaje_cliente, template, clientes, pagination: pagData } = await getCampaignById(id, pagination.page, pagination.pageSize);
-        console.log("camp id use: ", campanha_id);
+      const { campanha_id, nombre_campanha, fecha_creacion, fecha_fin, estado_campanha,
+        mensaje_cliente, template, clientes, pagination: pagData } = await getCampaignById(id, pagination.page, pagination.pageSize);
+
       // Actualiza la información de la campaña
       setCampaign({
         campanha_id,
-        descripcion,
         nombre_campanha,
         fecha_creacion,
         fecha_fin,
@@ -34,7 +35,7 @@ const useCampaignDetail = (id) => {
         mensaje_cliente,
         template
       });
-      
+
       // Actualiza la lista de clientes y la paginación
       setClients(clientes);
       setPagination((prev) => ({
@@ -53,7 +54,7 @@ const useCampaignDetail = (id) => {
 
   useEffect(() => {
     fetchCampaignDetail();
-    console.log("clientes",clients)
+    console.log("clientes", clients)
   }, [id, pagination.page, pagination.pageSize]);
 
   return {
@@ -73,66 +74,104 @@ const useCampaignDetail = (id) => {
       fetchCampaignDetail();
     },
     handleUploadClients: async (file) => {
-      console.log("se paso a handleUploadClients: ",id);
-      await uploadClients(id,file);
+      await uploadClients(id, file);
       fetchCampaignDetail();
     },
-    // handleSendCampaign: async () => {
-    //   try {
-    //     await sendCampaignMessages(id);
-    //     setSnackbarMessage("Mensajes enviados correctamente!");
-    //     setSnackbarSeverity("success");
-    //     setSnackbarOpen(true);
-    //   } catch (err) {
-        
-    //     setSnackbarMessage("Hubo un error al enviar los mensajes.");
-    //     setSnackbarSeverity("error");
-    //     setSnackbarOpen(true);
-    //   }
-    // },
-    //para que muestre los que fallaron
     handleSendCampaign: async () => {
       try {
-        const { sentMessages } = await sendCampaignMessages(id);
-    
-        const fallidos = sentMessages.filter(m => m.status === "error");
-        
-        if (fallidos.length > 0) {
-          const numerosFallidos = fallidos.map(f => f.to).join(", ");
-          setSnackbarMessage(`Se enviaron algunos mensajes, pero fallaron estos números: ${numerosFallidos}`);
-          setSnackbarSeverity("warning");
-        } else {
-          setSnackbarMessage("Mensajes enviados correctamente!");
-          setSnackbarSeverity("success");
-        }
-    
+        setSendingInProgress(true);
+        setSnackbarMessage("🚀 Iniciando envío de campaña...");
+        setSnackbarSeverity("info");
         setSnackbarOpen(true);
+
+        const response = await sendCampaignMessages(id);
+
+        // 🔹 Manejar la nueva respuesta 202 de GCP
+        if (response.success) {
+          const { campaign, status, timing } = response;
+          
+          // Crear mensaje optimista basado en la respuesta
+          const successMessage = `🎉 ${response.message}
+
+📋 Campaña: ${campaign.name}
+👥 Destinatarios: ${campaign.recipients} clientes
+📊 Estado: ${status.current}
+⏱️ Tiempo estimado: ${timing.estimated}
+
+💡 ${status.description}
+🔄 Los mensajes se están enviando automáticamente en segundo plano`;
+
+          setSnackbarMessage(successMessage);
+          setSnackbarSeverity("success");
+          
+          // Guardar información básica en stats
+          setCampaignStats({
+            campaignId: campaign.id,
+            campaignName: campaign.name,
+            totalRecipients: campaign.recipients,
+            status: status.current,
+            estimatedTime: timing.estimated,
+            startedAt: new Date().toISOString()
+          });
+
+          // Actualizar la campaña después de un breve delay
+          setTimeout(() => {
+            fetchCampaignDetail();
+          }, 2000);
+
+        } else {
+          throw new Error(response.message || "Error desconocido en el envío");
+        }
+
+        setSnackbarOpen(true);
+
       } catch (err) {
-        // Manejar error más crítico, por ejemplo, si ni siquiera se pudo ejecutar la función
-        const mensajesFallidos = err?.response?.data?.sentMessages?.filter(m => m.status === "error") || [];
-        const numeros = mensajesFallidos.map(m => m.to).join(", ");
-    
-        const mensaje = mensajesFallidos.length
-          ? `Error al enviar mensajes. Fallaron estos números: ${numeros}`
-          : "Hubo un error al enviar los mensajes.";
-    
-        setSnackbarMessage(mensaje);
+        console.error("Error en envío de campaña:", err);
+        
+        let errorMessage = "❌ Error al iniciar el envío de campaña";
+        
+        if (err.message.includes("timeout")) {
+          errorMessage = "⏱️ Timeout al iniciar envío\n💡 La campaña podría haberse iniciado correctamente";
+        } else if (err.message.includes("network")) {
+          errorMessage = "🌐 Error de conexión\n🔄 Verifica tu conexión a internet";
+        } else {
+          errorMessage = `❌ Error al iniciar envío:\n${err.message}`;
+        }
+
+        setSnackbarMessage(errorMessage);
         setSnackbarSeverity("error");
         setSnackbarOpen(true);
+      } finally {
+        setSendingInProgress(false);
       }
     },
-    
     snackbar: (
-      <Snackbar 
-        open={snackbarOpen} 
-        autoHideDuration={6000} 
-        onClose={() => setSnackbarOpen(false)}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={sendingInProgress ? null : 8000} // No auto-hide mientras está enviando
+        onClose={() => !sendingInProgress && setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        sx={{ maxWidth: '500px' }}
       >
-        <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: "100%" }}>
+        <Alert
+          onClose={() => !sendingInProgress && setSnackbarOpen(false)}
+          severity={snackbarSeverity}
+          sx={{
+            width: "100%",
+            '& .MuiAlert-message': {
+              whiteSpace: 'pre-line', // Permite saltos de línea
+              fontSize: '14px',
+              lineHeight: 1.4
+            }
+          }}
+        >
           {snackbarMessage}
         </Alert>
       </Snackbar>
     ),
+    // Exportar estadísticas para uso en componentes
+    campaignStats,
+    sendingInProgress
   };
 };
 
