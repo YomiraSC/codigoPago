@@ -146,12 +146,29 @@ export default function Layout({ children }) {
             px: 3,
             py: 1.5,
           }}
+          
         >
           <ListItemIcon sx={{ color: "#fff" }}>
             <PeopleIcon />
           </ListItemIcon>
           <ListItemText primary="Tareas" />
         </ListItem>
+
+        {session?.user?.role === "Administrador" && (<ListItem
+          button="true"
+          onClick={() => router.push("/dashboard")}
+          sx={{
+            "&:hover": { bgcolor: "#2D3748" },
+            px: 3,
+            py: 1.5,
+          }}
+        >
+          <ListItemIcon sx={{ color: "#fff" }}>
+            <DashboardIcon />
+          </ListItemIcon>
+          <ListItemText primary="Dashboard" />
+        </ListItem>)
+        }
 {session?.user?.role === "Administrador" && (
         <ListItem
           button="true"

@@ -217,6 +217,7 @@ model pago {
   first_name       String?            @db.VarChar(40)
   last_name        String?            @db.VarChar(40)
   num_operacion    String?            @db.VarChar(40)
+  asignado_por     String?
   accion_comercial accion_comercial[]
   cliente          cliente            @relation(fields: [cliente_id], references: [cliente_id], onDelete: Cascade, onUpdate: NoAction, map: "pago_ibfk_1")
   cita             cita?              @relation(fields: [cita_id], references: [cita_id], onUpdate: NoAction, map: "pago_ibfk_2")
