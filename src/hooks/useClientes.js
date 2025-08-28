@@ -62,6 +62,7 @@ export function useClientes() {
       
       setLoading(true);
       try {
+        console.log("usuario", session?.user);
         // Convertir página de Material-UI (0-based) a API (1-based)
         const apiPage = pagination.page + 1;
         const data = await fetchClientes({ 
@@ -69,7 +70,7 @@ export function useClientes() {
           pageSize: pagination.pageSize, 
           filters, 
           sortModel, 
-          name: session?.user?.name,
+          gestor: session?.user?.username,
           role: session?.user?.role
         });
         setClientes(data.clientes);

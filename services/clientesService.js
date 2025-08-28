@@ -1,6 +1,6 @@
 import axiosInstance from "./api";
 
-export const fetchClientes = async ({ page = 1, pageSize = 10, filters = {}, sortModel = [] }) => {
+export const fetchClientes = async ({ page = 1, pageSize = 10, filters = {}, sortModel = [] ,gestor,role}) => {
   try {
     const params = {
       page,
@@ -14,6 +14,8 @@ export const fetchClientes = async ({ page = 1, pageSize = 10, filters = {}, sor
       fechaFin: filters.fechaFin || undefined,
       orderBy: sortModel.length ? sortModel[0].field : "fecha_creacion",
       order: sortModel.length ? sortModel[0].sort : "asc",
+      gestor:gestor,
+      role:role
     };
 
     console.log("📡 Enviando solicitud con parámetros:", params);

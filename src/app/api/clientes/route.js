@@ -16,7 +16,7 @@ export async function GET(req) {
     const bound = searchParams.get("bound");
     let fechaInicio = searchParams.get("fechaInicio");
     let fechaFin = searchParams.get("fechaFin");
-    const gestor =searchParams.get("name");
+    const gestor =searchParams.get("gestor");
     const role = searchParams.get("role");
     const accionComercial = searchParams.get("accionComercial"); //
     const interaccionBot = searchParams.get("interaccionBot"); // Nuevo parámetro
@@ -67,8 +67,10 @@ export async function GET(req) {
         lte: fechaFin, // Menor o igual a la fecha de fin
       };
     }
-    if ((gestor && gestor !== "Todos")&&(role=="asesor")) {
+    if ((gestor && gestor !== "Todos")&&(role=="Usuario")) {
+
       filtros.gestor = gestor; // Si usas el nombre
+      console.log("Gestor aplicado:", filtros);
       // o si utilizas gestor_id, sería:
       // filtros.gestor_id = parseInt(gestor, 10);
     }

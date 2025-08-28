@@ -318,7 +318,7 @@ export default function Layout({ children }) {
               style={{ height: 40, marginRight: 10 }}
             />
             <Typography variant="h6" noWrap component="div" sx={{ fontWeight: "bold" }}>
-              FIDELIZACION 
+              Codigo de Pago
             </Typography>
           </Box>
           {/*<Notificaciones></Notificaciones>*/}
