@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 
 export async function POST(request) {
   try {
-    const { tipo, cliente, template_id, variables, gestion } = await request.json();
+  const { tipo, cliente, template_id, variables, gestion, gestor_username } = await request.json();
 
     // Validar datos requeridos
     if (!cliente?.celular || !cliente?.nombre || !variables?.codigo || !gestion) {
@@ -172,7 +172,8 @@ export async function POST(request) {
           cliente_id: clientePostgres?.cliente_id || null,
           estado: estadoAccion,
           nota: notaAccion,
-          fecha_accion: new Date()
+          fecha_accion: new Date(),
+          gestor: gestor_username || null
         }
       });
 

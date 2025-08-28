@@ -85,6 +85,7 @@ const DashboardLlamadas = () => {
   
   // 🎨 Estados para filtros
   const [filtros, setFiltros] = useState({
+    tipoEntrega: 'todos', // 'todos', 'bot' o 'asesor'
     gestor: '',
     fechaDesde: '',
     fechaHasta: ''
@@ -108,7 +109,9 @@ const DashboardLlamadas = () => {
     const fechasDefecto = obtenerFechasPorDefecto();
     setFiltros(prev => ({
       ...prev,
-      ...fechasDefecto
+      ...fechasDefecto,
+      tipoEntrega: 'todos',
+      gestor: ''
     }));
   }, []);
 
@@ -143,14 +146,14 @@ const DashboardLlamadas = () => {
       setLoading(true);
       
       // 🔗 Preparación de parámetros para la API
-      const params = new URLSearchParams({
-        gestor: filtros.gestor || '',
-        fechaDesde: filtros.fechaDesde,
-        fechaHasta: filtros.fechaHasta
-      });
-
-      console.log('� Llamando a API statsasesor con parámetros:', params.toString());
-      
+      const params = new URLSearchParams();
+      params.append('tipoEntrega', filtros.tipoEntrega);
+      params.append('fechaDesde', filtros.fechaDesde);
+      params.append('fechaHasta', filtros.fechaHasta);
+      if (filtros.tipoEntrega === 'asesor') {
+        params.append('gestor', filtros.gestor || '');
+      }
+      console.log('📊 Llamando a API statsasesor con parámetros:', params.toString());
       // 🌐 Llamada real a la API
       const response = await fetch(`/api/statsasesor?${params}`);
       if (response.ok) {
@@ -184,6 +187,7 @@ const DashboardLlamadas = () => {
   const resetearFiltros = () => {
     const fechasDefecto = obtenerFechasPorDefecto();
     setFiltros({
+      tipoEntrega: 'todos',
       gestor: '',
       ...fechasDefecto
     });
@@ -200,14 +204,14 @@ const DashboardLlamadas = () => {
       <Paper elevation={2} sx={{ p: 3, mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
         <Box display="flex" alignItems="center" mb={2}>
           <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', mr: 2, width: 56, height: 56 }}>
-            <PhoneIcon fontSize="large" />
+            <CheckCircleIcon fontSize="large" />
           </Avatar>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 700 }}>
-              Dashboard de Llamadas
+              Dashboard de Códigos Entregados
             </Typography>
             <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
-              Gestión y seguimiento de acciones comerciales
+              Visualiza y filtra los códigos entregados por Bot o Asesor
             </Typography>
           </Box>
         </Box>
@@ -215,6 +219,7 @@ const DashboardLlamadas = () => {
 
       {/* 🎛️ Panel de Filtros */}
       <Fade in={true}>
+
         <Card elevation={3} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
           <Box display="flex" alignItems="center" mb={3}>
             <FilterIcon color="primary" sx={{ mr: 1 }} />
@@ -222,47 +227,66 @@ const DashboardLlamadas = () => {
               Filtros de Búsqueda
             </Typography>
           </Box>
-          
           <Grid container spacing={3} alignItems="center">
-            {/* Filtro por Gestor */}
-            <Grid item xs={12} md={4}>
-              <Autocomplete
-                loading={loadingGestores}
-                options={[{ id: '', nombre_completo: 'Todos los gestores' }, ...gestores]}
-                getOptionLabel={(option) => option.nombre_completo || ''}
-                value={gestores.find(g => g.id === filtros.gestor) || { id: '', nombre_completo: 'Todos los gestores' }}
-                onChange={(event, newValue) => {
-                  manejarCambioFiltro('gestor', newValue?.id || '');
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Gestor"
-                    variant="outlined"
-                    fullWidth
-                    InputProps={{
-                      ...params.InputProps,
-                      startAdornment: <PersonIcon color="action" sx={{ mr: 1 }} />,
-                      endAdornment: (
-                        <>
-                          {loadingGestores ? <CircularProgress color="inherit" size={20} /> : null}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
-                    }}
-                  />
-                )}
-                renderOption={(props, option) => (
-                  <Box component="li" {...props}>
-                    <Avatar sx={{ mr: 2, bgcolor: 'primary.main', width: 32, height: 32 }}>
-                      {option.nombre_completo?.charAt(0) || 'T'}
-                    </Avatar>
-                    {option.nombre_completo}
-                  </Box>
-                )}
-              />
+            {/* Filtro por tipo de entrega */}
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth>
+                <InputLabel id="tipoEntrega-label">Tipo de Entrega</InputLabel>
+                <Select
+                  labelId="tipoEntrega-label"
+                  value={filtros.tipoEntrega}
+                  label="Tipo de Entrega"
+                  onChange={e => manejarCambioFiltro('tipoEntrega', e.target.value)}
+                >
+                  <MenuItem value="todos">Todos</MenuItem>
+                  <MenuItem value="bot">Bot</MenuItem>
+                  <MenuItem value="asesor">Asesor</MenuItem>
+                </Select>
+              </FormControl>
             </Grid>
-
+            {/* Filtro por Gestor solo si es asesor */}
+            {filtros.tipoEntrega === 'asesor' && (
+              <Grid item xs={12} md={4}>
+                <Autocomplete
+                  loading={loadingGestores}
+                  options={[{ id: '', nombre_completo: 'Todos los gestores' }, ...gestores]}
+                  getOptionLabel={(option) => option.nombre_completo || ''}
+                  value={gestores.find(g => g.id === filtros.gestor) || { id: '', nombre_completo: 'Todos los gestores' }}
+                  onChange={(event, newValue) => {
+                    manejarCambioFiltro('gestor', newValue?.id || '');
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Gestor"
+                      variant="outlined"
+                      fullWidth
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: <PersonIcon color="action" sx={{ mr: 1 }} />,
+                        endAdornment: (
+                          <>
+                            {loadingGestores ? <CircularProgress color="inherit" size={20} /> : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
+                  renderOption={(props, option, { index }) => {
+                    // MUI already sets key in props, but we can ensure uniqueness here
+                    return (
+                      <Box component="li" {...props} key={option.id ?? option.nombre_completo ?? index}>
+                        <Avatar sx={{ mr: 2, bgcolor: 'primary.main', width: 32, height: 32 }}>
+                          {option.nombre_completo?.charAt(0) || 'T'}
+                        </Avatar>
+                        {option.nombre_completo}
+                      </Box>
+                    );
+                  }}
+                />
+              </Grid>
+            )}
             {/* Filtro Fecha Desde */}
             <Grid item xs={12} md={3}>
               <TextField
@@ -280,7 +304,6 @@ const DashboardLlamadas = () => {
                 }}
               />
             </Grid>
-
             {/* Filtro Fecha Hasta */}
             <Grid item xs={12} md={3}>
               <TextField
@@ -298,12 +321,9 @@ const DashboardLlamadas = () => {
                 }}
               />
             </Grid>
-
             {/* Botones de Acción */}
             <Grid item xs={12} md={2}>
               <Box display="flex" gap={1}>
-        
-                
                 <Button
                   variant="outlined"
                   onClick={resetearFiltros}
@@ -324,13 +344,21 @@ const DashboardLlamadas = () => {
           </Grid>
 
           {/* Información de filtros activos */}
-          {(filtros.gestor || filtros.fechaDesde || filtros.fechaHasta) && (
+          {(filtros.tipoEntrega || filtros.gestor || filtros.fechaDesde || filtros.fechaHasta) && (
             <Box mt={2} p={2} sx={{ backgroundColor: 'grey.50', borderRadius: 1 }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 <strong>Filtros activos:</strong>
               </Typography>
               <Box display="flex" gap={1} flexWrap="wrap">
-                {filtros.gestor && (
+                {filtros.tipoEntrega && (
+                  <Chip
+                    label={`Tipo: ${filtros.tipoEntrega === 'todos' ? 'Todos' : filtros.tipoEntrega === 'bot' ? 'Bot' : 'Asesor'}`}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                  />
+                )}
+                {filtros.tipoEntrega === 'asesor' && filtros.gestor && (
                   <Chip
                     label={`Gestor: ${gestores.find(g => g.id === filtros.gestor)?.nombre_completo || 'Seleccionado'}`}
                     size="small"
@@ -486,7 +514,13 @@ const DashboardLlamadas = () => {
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={datos.resultados}
+                    data={[
+                      { name: 'Promesa de Pago', value: datos.distribucionEstados?.['Promesa de Pago'] || 0, color: '#00C49F' },
+                      { name: 'Duda resuelta', value: datos.distribucionEstados?.['Duda resuelta'] || 0, color: '#0088FE' },
+                      { name: 'Duda no resuelta', value: datos.distribucionEstados?.['Duda no resuelta'] || 0, color: '#FFA726' },
+                      { name: 'Codigo entregado', value: datos.distribucionEstados?.['Codigo entregado'] || 0, color: '#4caf50' },
+                      { name: 'Codigo no entregado', value: datos.distribucionEstados?.['Codigo no entregado'] || 0, color: '#f44336' }
+                    ].filter(item => item.value > 0)}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
@@ -497,7 +531,13 @@ const DashboardLlamadas = () => {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {datos.resultados.map((entry, index) => (
+                    {[
+                      { name: 'Promesa de Pago', color: '#00C49F' },
+                      { name: 'Duda resuelta', color: '#0088FE' },
+                      { name: 'Duda no resuelta', color: '#FFA726' },
+                      { name: 'Codigo entregado', color: '#4caf50' },
+                      { name: 'Codigo no entregado', color: '#f44336' }
+                    ].map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -524,18 +564,17 @@ const DashboardLlamadas = () => {
                 <BarChart data={[
                   {
                     categoria: 'Exitosos',
-                    cantidad: (datos.distribucionEstados?.['Promesa de Pago'] || 0),
+                    cantidad: (datos.distribucionEstados?.['Promesa de Pago'] || 0) + (datos.distribucionEstados?.['Codigo entregado'] || 0),
                     color: '#00C49F'
                   },
                   {
                     categoria: 'En Proceso',
-                    cantidad: (datos.distribucionEstados?.['Seguimiento - Duda resuelta'] || 0),
+                    cantidad: (datos.distribucionEstados?.['Duda resuelta'] || 0),
                     color: '#0088FE'
                   },
                   {
                     categoria: 'Negativos',
-                    cantidad: (datos.distribucionEstados?.['No interesado'] || 0) + 
-                             (datos.distribucionEstados?.['Seguimiento - Duda no resuelta'] || 0),
+                    cantidad: (datos.distribucionEstados?.['Duda no resuelta'] || 0) + (datos.distribucionEstados?.['Codigo no entregado'] || 0),
                     color: '#FF8042'
                   }
                 ]}>
@@ -551,7 +590,7 @@ const DashboardLlamadas = () => {
                       { fill: '#0088FE' },
                       { fill: '#FF8042' }
                     ].map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                      <Cell key={`cell-bar-${index}`} fill={entry.fill} />
                     ))}
                   </Bar>
                 </BarChart>

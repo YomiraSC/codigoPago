@@ -570,7 +570,8 @@ function EnvioMensajeModal({ open, onClose, onSuccess }) {
         variables: {
           codigo: codigo.trim()
         },
-        gestion: tipoGestion
+        gestion: tipoGestion,
+        gestor_username: session?.user?.name || session?.user?.email || ''
       };
 
       // Solo incluir template_id para gestión retadora

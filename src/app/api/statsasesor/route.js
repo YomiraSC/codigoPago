@@ -4,9 +4,10 @@ import prisma from "@/lib/prisma";
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
-    const gestor = searchParams.get('gestor'); // Username del gestor
-    const fechaDesde = searchParams.get('fechaDesde');
-    const fechaHasta = searchParams.get('fechaHasta');
+  const gestor = searchParams.get('gestor'); // Username del gestor
+  const fechaDesde = searchParams.get('fechaDesde');
+  const fechaHasta = searchParams.get('fechaHasta');
+  const tipoEntrega = searchParams.get('tipoEntrega') || 'todos';
 
     // 📅 Validación de fechas requeridas
     if (!fechaDesde || !fechaHasta) {
@@ -16,12 +17,27 @@ export async function GET(request) {
       );
     }
 
-    // 🔍 Construir filtros base para acciones comerciales (estas son las "llamadas")
+    // Filtros para acciones comerciales (asesor)
     const filtroBase = {
       fecha_accion: {
         gte: new Date(fechaDesde),
-        lte: new Date(fechaHasta + 'T23:59:59.999Z'), // Incluir todo el día final
+        lte: new Date(fechaHasta + 'T23:59:59.999Z'),
       },
+    };
+    // Filtros para historico_estado (bot)
+    const filtroHistorico = {
+      fecha_estado: {
+        gte: new Date(fechaDesde),
+        lte: new Date(fechaHasta + 'T23:59:59.999Z'),
+      },
+      estado: {
+        in: [
+          'Duda resuelta',
+          'Duda no resuelta',
+          'Codigo entregado',
+          'Codigo no entregado'
+        ]
+      }
     };
     // console.log("🔄 Filtro base:", gestor);
     // const gestorCon = await prisma.usuario.findUnique({
@@ -39,105 +55,180 @@ export async function GET(request) {
     console.log("🔄 Filtro base - gestor recibido:", gestor);
 
     let usernameFiltro = null;
-
     if (gestor && gestor !== 'todos' && gestor.trim() !== '') {
-      // ¿Es un ID numérico?
       const idNum = Number(gestor);
       if (Number.isInteger(idNum) && Number.isFinite(idNum)) {
-        // Busca por ID
         const gestorCon = await prisma.usuario.findUnique({
           where: { usuario_id: idNum },
           select: { username: true }
         });
-
         if (!gestorCon) {
           return NextResponse.json(
             { error: `No se encontró usuario con id ${idNum}` },
             { status: 404 }
           );
         }
-
         usernameFiltro = gestorCon.username;
       } else {
-        // Asume que ya es un username
         usernameFiltro = gestor;
       }
     }
-
-    if (usernameFiltro) {
-      console.log(`🧩 Filtrando por gestor.username: ${usernameFiltro}`);
-      // Ajusta el nombre del campo según tu modelo de accion_comercial
-      // (si el campo se llama diferente, cámbialo aquí)
+    if (usernameFiltro && tipoEntrega === 'asesor') {
       filtroBase.gestor = usernameFiltro;
     }
 
 
-    // 📊 Obtener estadísticas principales de acciones comerciales
-    const [
-      totalLlamadas,
-      llamadasHoy,
-      accionesPorEstado,
-      actividadDiaria,
-      clientesContactados,
-    ] = await Promise.all([
-      // Total de acciones comerciales (llamadas)
-      prisma.accion_comercial.count({ where: filtroBase }),
-      
-      // Acciones del día actual
-      prisma.accion_comercial.count({
-        where: {
-          ...filtroBase,
-          fecha_accion: {
-            gte: new Date(new Date().toISOString().split('T')[0]),
-            lte: new Date(),
+    // 📊 Obtener estadísticas principales según tipoEntrega
+    let totalLlamadas = 0;
+    let llamadasHoy = 0;
+    let accionesPorEstado = [];
+    let actividadDiaria = [];
+    let clientesContactados = 0;
+    let totalBot = 0;
+    let botPorEstado = [];
+    let botActividadDiaria = [];
+    let botClientesContactados = 0;
+
+    // Acciones comerciales (asesor)
+    if (tipoEntrega === 'asesor' || tipoEntrega === 'todos') {
+      [
+        totalLlamadas,
+        llamadasHoy,
+        accionesPorEstado,
+        actividadDiaria,
+        clientesContactados
+      ] = await Promise.all([
+        prisma.accion_comercial.count({ where: filtroBase }),
+        prisma.accion_comercial.count({
+          where: {
+            ...filtroBase,
+            fecha_accion: {
+              gte: new Date(new Date().toISOString().split('T')[0]),
+              lte: new Date(),
+            }
           }
+        }),
+        prisma.accion_comercial.groupBy({
+          by: ['estado'],
+          _count: { accion_comercial_id: true },
+          where: filtroBase,
+        }),
+        prisma.accion_comercial.groupBy({
+          by: ['fecha_accion'],
+          _count: { accion_comercial_id: true },
+          where: {
+            ...filtroBase,
+            fecha_accion: {
+              gte: new Date(Math.max(new Date(fechaDesde), new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))),
+              lte: new Date(fechaHasta + 'T23:59:59.999Z'),
+            }
+          },
+          orderBy: { fecha_accion: 'asc' },
+        }),
+        prisma.accion_comercial.groupBy({
+          by: ['cliente_id'],
+          where: filtroBase,
+        }).then(grouped => grouped.length)
+      ])
+    }
+
+    // Estados del bot (historico_estado)
+    if (tipoEntrega === 'bot' || tipoEntrega === 'todos') {
+      // Total de códigos entregados por bot (historico_estado)
+      const historicoEstados = await prisma.historico_estado.findMany({
+        where: filtroHistorico,
+        select: {
+          estado: true,
+          fecha_estado: true,
+          cliente_id: true
         }
-      }),
-      
-      // Distribución por estado de las acciones comerciales
-      prisma.accion_comercial.groupBy({
-        by: ['estado'],
-        _count: {
-          accion_comercial_id: true,
-        },
-        where: filtroBase,
-      }),
-      
-      // Actividad diaria (últimos 7 días o en el rango especificado)
-      prisma.accion_comercial.groupBy({
-        by: ['fecha_accion'],
-        _count: {
-          accion_comercial_id: true,
-        },
-        where: {
-          ...filtroBase,
-          fecha_accion: {
-            gte: new Date(Math.max(new Date(fechaDesde), new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))),
-            lte: new Date(fechaHasta + 'T23:59:59.999Z'),
-          }
-        },
-        orderBy: {
-          fecha_accion: 'asc',
-        },
-      }),
-      
-      // Clientes únicos contactados (que tienen al menos una acción comercial)
-      prisma.accion_comercial.groupBy({
-        by: ['cliente_id'],
-        where: filtroBase,
-      }).then(grouped => grouped.length),
-    ]);
+      });
+      totalBot = historicoEstados.length;
+      // Agrupar por estado
+      const estadoCount = {};
+      historicoEstados.forEach(h => {
+        estadoCount[h.estado] = (estadoCount[h.estado] || 0) + 1;
+      });
+      botPorEstado = Object.entries(estadoCount).map(([estado, count]) => ({
+        estado,
+        _count: { historico_estado_id: count }
+      }));
+      // Agrupar por día
+      const actividad = {};
+      historicoEstados.forEach(h => {
+        const fecha = h.fecha_estado.toISOString().split('T')[0];
+        actividad[fecha] = (actividad[fecha] || 0) + 1;
+      });
+      botActividadDiaria = Object.entries(actividad).map(([fecha, cantidad]) => ({
+        fecha_accion: new Date(fecha),
+        _count: { historico_estado_id: cantidad }
+      }));
+      // Clientes únicos
+      botClientesContactados = new Set(historicoEstados.map(h => h.cliente_id)).size;
+    }
 
-    // 🔍 Debug: Ver qué estados se encontraron en la base de datos
-    console.log("🔍 Estados encontrados en accion_comercial:", 
-      accionesPorEstado.map(item => `"${item.estado}": ${item._count.accion_comercial_id}`)
-    );
-    console.log("🔍 Total de acciones comerciales encontradas:", totalLlamadas);
+    // � Calcular métricas derivadas
+    // Sumar totales según tipoEntrega
+    let totalFinal = 0;
+    let llamadasHoyFinal = 0;
+    let accionesPorEstadoFinal = [];
+    let actividadDiariaFinal = [];
+    let clientesContactadosFinal = 0;
 
-    // 📈 Calcular métricas derivadas
-    const promedioLlamadasDia = totalLlamadas > 0 ? Math.round(totalLlamadas / 30) : 0;
-    
-    // Porcentaje de contactabilidad (asumiendo que tener una acción comercial = contactado)
+    if (tipoEntrega === 'bot') {
+      totalFinal = totalBot;
+      llamadasHoyFinal = 0; // Opcional: puedes calcular los del día si lo necesitas
+      accionesPorEstadoFinal = botPorEstado.map(item => ({
+        estado: item.estado,
+        _count: { accion_comercial_id: item._count.historico_estado_id }
+      }));
+      actividadDiariaFinal = botActividadDiaria.map(item => ({
+        fecha: item.fecha_accion.toISOString().split('T')[0],
+        cantidad: item._count.historico_estado_id
+      }));
+      clientesContactadosFinal = botClientesContactados;
+    } else if (tipoEntrega === 'asesor') {
+      totalFinal = totalLlamadas;
+      llamadasHoyFinal = llamadasHoy;
+      accionesPorEstadoFinal = accionesPorEstado;
+      actividadDiariaFinal = actividadDiaria.map(item => ({
+        fecha: item.fecha_accion.toISOString().split('T')[0],
+        cantidad: item._count.accion_comercial_id
+      }));
+      clientesContactadosFinal = clientesContactados;
+    } else {
+      // todos: sumar ambos
+      totalFinal = totalLlamadas + totalBot;
+      llamadasHoyFinal = llamadasHoy; // solo asesor, o puedes sumar ambos si lo calculas para bot
+      // Unir por estado
+      const estadoMap = {};
+      accionesPorEstado.forEach(item => {
+        estadoMap[item.estado] = (estadoMap[item.estado] || 0) + item._count.accion_comercial_id;
+      });
+      botPorEstado.forEach(item => {
+        estadoMap[item.estado] = (estadoMap[item.estado] || 0) + item._count.historico_estado_id;
+      });
+      accionesPorEstadoFinal = Object.entries(estadoMap).map(([estado, count]) => ({
+        estado,
+        _count: { accion_comercial_id: count }
+      }));
+      // Unir actividad diaria
+      const actividadMap = {};
+      actividadDiaria.forEach(item => {
+        const fecha = item.fecha_accion.toISOString().split('T')[0];
+        actividadMap[fecha] = (actividadMap[fecha] || 0) + item._count.accion_comercial_id;
+      });
+      botActividadDiaria.forEach(item => {
+        const fecha = item.fecha_accion.toISOString().split('T')[0];
+        actividadMap[fecha] = (actividadMap[fecha] || 0) + item._count.historico_estado_id;
+      });
+      actividadDiariaFinal = Object.entries(actividadMap).map(([fecha, cantidad]) => ({ fecha, cantidad }));
+      // Unir clientes contactados
+      clientesContactadosFinal = clientesContactados + botClientesContactados;
+    }
+
+    // Calcular promedios y métricas
+    const promedioLlamadasDia = totalFinal > 0 ? Math.round(totalFinal / 30) : 0;
     const totalClientesEnPeriodo = await prisma.cliente.count({
       where: {
         fecha_creacion: {
@@ -146,123 +237,80 @@ export async function GET(request) {
         }
       }
     });
-    
-    const porcentajeContactabilidad = totalClientesEnPeriodo > 0 ? 
-      Math.round((clientesContactados / totalClientesEnPeriodo) * 100) : 0;
-    
-    // Efectividad: acciones que resultaron en estados positivos
+    const porcentajeContactabilidad = totalClientesEnPeriodo > 0 ?
+      Math.round((clientesContactadosFinal / totalClientesEnPeriodo) * 100) : 0;
+    // Efectividad y conversión (solo para asesor y todos)
     const estadosPositivos = [
       'Promesa de Pago',
-      'Seguimiento - Duda resuelta'
+      'Seguimiento - Duda resuelta',
+      'Duda resuelta'
     ];
-    
-    const accionesPositivas = accionesPorEstado.reduce((acc, item) => {
+    const accionesPositivas = accionesPorEstadoFinal.reduce((acc, item) => {
       if (estadosPositivos.includes(item.estado || '')) {
         return acc + item._count.accion_comercial_id;
       }
       return acc;
     }, 0);
-    
-    const porcentajeEfectividad = totalLlamadas > 0 ? 
-      Math.round((accionesPositivas / totalLlamadas) * 100) : 0;
-    
+    const porcentajeEfectividad = totalFinal > 0 ?
+      Math.round((accionesPositivas / totalFinal) * 100) : 0;
     // Conversión: clientes que llegaron a estados de éxito total
-    const estadosExitosos = ['Promesa de Pago'];
-    const accionesExitosas = accionesPorEstado.reduce((acc, item) => {
+    const estadosExitosos = ['Promesa de Pago', 'Codigo entregado'];
+    const accionesExitosas = accionesPorEstadoFinal.reduce((acc, item) => {
       if (estadosExitosos.includes(item.estado || '')) {
         return acc + item._count.accion_comercial_id;
       }
       return acc;
     }, 0);
-    
-    const porcentajeConversion = totalLlamadas > 0 ? 
-      Math.round((accionesExitosas / totalLlamadas) * 100) : 0;
-
-    // 🔄 Formatear distribución de estados según los estados reales
+    const porcentajeConversion = totalFinal > 0 ?
+      Math.round((accionesExitosas / totalFinal) * 100) : 0;
+    // Distribución de estados
     const distribucionEstados = {
-      'Promesa de Pago': accionesPorEstado.find(item => item.estado === 'Promesa de Pago')?._count.accion_comercial_id || 0,
-      'Seguimiento - Duda resuelta': accionesPorEstado.find(item => item.estado === 'Seguimiento - Duda resuelta')?._count.accion_comercial_id || 0,
-      'No interesado': accionesPorEstado.find(item => item.estado === 'No interesado')?._count.accion_comercial_id || 0,
-      'Seguimiento - Duda no resuelta': accionesPorEstado.find(item => item.estado === 'Seguimiento - Duda no resuelta')?._count.accion_comercial_id || 0,
+      'Promesa de Pago': accionesPorEstadoFinal.find(item => item.estado === 'Promesa de Pago')?._count.accion_comercial_id || 0,
+      'Duda resuelta': accionesPorEstadoFinal.find(item => item.estado === 'Duda resuelta')?._count.accion_comercial_id || 0,
+      'Duda no resuelta': accionesPorEstadoFinal.find(item => item.estado === 'Duda no resuelta')?._count.accion_comercial_id || 0,
+      'Codigo entregado': accionesPorEstadoFinal.find(item => item.estado === 'Codigo entregado')?._count.accion_comercial_id || 0,
+      'Codigo no entregado': accionesPorEstadoFinal.find(item => item.estado === 'Codigo no entregado')?._count.accion_comercial_id || 0,
     };
-
-    console.log("🔍 Distribución de estados calculada:", distribucionEstados);
-
-    // 🔄 Formatear tipos de acción
-    const tiposAccion = accionesPorEstado.reduce((acc, item) => {
+    // Tipos de acción
+    const tiposAccion = accionesPorEstadoFinal.reduce((acc, item) => {
       acc[item.estado || 'Sin especificar'] = item._count.accion_comercial_id;
       return acc;
     }, {});
-
-    // 🔄 Formatear actividad diaria
-    const actividadDiariaFormateada = actividadDiaria.map(item => ({
-      fecha: item.fecha_accion.toISOString().split('T')[0],
-      cantidad: item._count.accion_comercial_id,
-    }));
+    // Actividad diaria
+    const actividadDiariaFormateada = actividadDiariaFinal;
 
     // 🎯 Respuesta estructurada
     const estadisticas = {
       // Métricas principales (adaptadas para el dashboard)
-      totalLlamadas, // Total de acciones comerciales
-      llamadasHoy,
-      llamadasMes: totalLlamadas, // En el rango seleccionado
+      totalLlamadas: totalFinal, // Total de acciones comerciales + bot
+      llamadasHoy: llamadasHoyFinal,
+      llamadasMes: totalFinal, // En el rango seleccionado
       promedioLlamadasDia,
       tendencia: `${porcentajeContactabilidad >= 70 ? '+' : ''}${porcentajeContactabilidad}%`,
-      
-      // Métricas de rendimiento
-      clientesContactados,
+      clientesContactados: clientesContactadosFinal,
       porcentajeContactabilidad,
       porcentajeEfectividad,
       porcentajeConversion,
-      
-      // Distribución por estado de acciones comerciales
       distribucionEstados,
-      
-      // Tipos de acción comercial
       tiposAccion,
-      
-      // Actividad diaria
       actividadDiaria: actividadDiariaFormateada,
-      
-      // Para compatibilidad con el frontend existente - Gráfico por estados
       resultados: [
-        { 
-          name: 'Promesa de Pago', 
-          value: distribucionEstados['Promesa de Pago'] || 0, 
-          color: '#00C49F' 
-        },
-        { 
-          name: 'Seguimiento - Duda resuelta', 
-          value: distribucionEstados['Seguimiento - Duda resuelta'] || 0, 
-          color: '#0088FE' 
-        },
-        { 
-          name: 'No interesado', 
-          value: distribucionEstados['No interesado'] || 0, 
-          color: '#FF8042' 
-        },
-        { 
-          name: 'Seguimiento - Duda no resuelta', 
-          value: distribucionEstados['Seguimiento - Duda no resuelta'] || 0, 
-          color: '#FFA726' 
-        }
-      ].filter(item => item.value > 0), // Solo mostrar estados con valores
-      
-      // Tendencia semanal para gráficos
+        { name: 'Promesa de Pago', value: distribucionEstados['Promesa de Pago'] || 0, color: '#00C49F' },
+        { name: 'Duda resuelta', value: distribucionEstados['Duda resuelta'] || 0, color: '#0088FE' },
+        { name: 'Duda no resuelta', value: distribucionEstados['Duda no resuelta'] || 0, color: '#FFA726' },
+        { name: 'Codigo entregado', value: distribucionEstados['Codigo entregado'] || 0, color: '#4caf50' },
+        { name: 'Codigo no entregado', value: distribucionEstados['Codigo no entregado'] || 0, color: '#f44336' },
+      ].filter(item => item.value > 0),
       tendenciaSemanal: actividadDiariaFormateada.slice(-7).map((item, index) => ({
         dia: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][new Date(item.fecha).getDay()],
         llamadas: item.cantidad
       })),
-      
-      // Gestores (vacío por ahora, se puede implementar si se necesita)
       gestores: [],
-      
-      // Metadatos
       filtros: {
         gestor: gestor || 'todos',
         fechaDesde,
         fechaHasta,
-        totalAcciones: totalLlamadas,
+        totalAcciones: totalFinal,
         totalClientesEnPeriodo,
       },
     };
