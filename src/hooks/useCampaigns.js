@@ -4,8 +4,12 @@ import { getCampaigns,
   createCampaign, 
   updateCampaign, // ✅ Función para actualizar campaña
   deleteCampaign } from "../../services/campaignService";
+import { useRouter } from "next/navigation"; // Agrega este import
+
 
 const useCampaigns = () => {
+  const router = useRouter(); // Inicializa el router
+
   const [campaigns, setCampaigns] = useState([]); // 🔹 Siempre inicia con []
   const [templates, setTemplates] = useState([]); 
   const [pagination, setPagination] = useState({ page: 1, pageSize: 10, total: 0 });
@@ -84,7 +88,7 @@ const useCampaigns = () => {
 
   const handleCreate = () => {
     setSelectedCampaign(null);
-    setOpenModal(true);
+    router.push(`${window.location.pathname.replace(/\/$/, "")}/new`);
   };
 
   const handleEdit = (campaign) => {

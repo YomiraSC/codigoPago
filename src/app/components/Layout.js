@@ -21,7 +21,6 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import LogoutIcon from "@mui/icons-material/Logout";
 import CampaignIcon from "@mui/icons-material/Campaign";
 import PeopleIcon from "@mui/icons-material/People";
-import SendIcon from '@mui/icons-material/Send';
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
@@ -33,6 +32,7 @@ import { useEffect } from "react";
 import { HomeMini, HomeRepairService } from "@mui/icons-material";
 import HomeIcon from "@mui/icons-material/Home";
 
+
 const drawerWidth = 240;
 
 export default function Layout({ children }) {
@@ -40,6 +40,14 @@ export default function Layout({ children }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(true); // Control de la barra lateral
   const { data: session, status } = useSession();
   const router = useRouter();
+
+  useEffect(() => {
+    console.log("Estado de la sesión:", session);
+    if (session) {
+      console.log("Usuario logueado:", session.user);
+      console.log("Rol del usuario:", session.user.role);
+    }
+  }, [session]); // Se ejecutará cuando session cambie
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -55,7 +63,7 @@ export default function Layout({ children }) {
 
   const isAdmin = session?.user?.rol === "admin" || session?.user?.rol === "admin_general";
   console.log("Rol", session?.user?.rol)
-  console.log("Rol ID:", session?.user?.rol_id);
+
   const drawer = (
     <Box
       sx={{
@@ -75,22 +83,21 @@ export default function Layout({ children }) {
       </Toolbar>
       <Divider sx={{ bgcolor: "#254e59" }} />
       <List>
-        {/* {session?.user?.role === "Administrador" && (
-          <ListItem
-            button="true"
-            onClick={() => router.push("/admin")}
-            sx={{
-              "&:hover": { bgcolor: "#2D3748" },
-              px: 3,
-              py: 1.5,
-            }}
-          >
-            <ListItemIcon sx={{ color: "#fff" }}>
-              <AdminPanelSettingsIcon />
-            </ListItemIcon>
-            <ListItemText primary="Admin" />
-          </ListItem>
-        )} */}
+        {/*<ListItem
+          button="true"
+          onClick={() => router.push("/")}
+          sx={{
+            "&:hover": { bgcolor: "#2D3748" },
+            px: 3,
+            py: 1.5,
+          }}
+        >
+          <ListItemIcon sx={{ color: "#fff" }}>
+            <HomeIcon /> 
+          </ListItemIcon>
+
+          <ListItemText primary="Home" />
+        </ListItem>*/}
         {/*<ListItem
           button="true"
           onClick={() => router.push("/leads")}
@@ -105,23 +112,7 @@ export default function Layout({ children }) {
           </ListItemIcon>
           <ListItemText primary="Leads" />
         </ListItem>*/}
-        <ListItem
-          button="true"
-          onClick={() => router.push("/")}
-          sx={{
-            "&:hover": { bgcolor: "#2D3748" },
-            px: 3,
-            py: 1.5,
-          }}
-        >
-          
-          <ListItemIcon sx={{ color: "#fff" }}>
-            <HomeIcon />
-          </ListItemIcon>
-          <ListItemText primary="Home" />
-        </ListItem>
-        {session?.user?.role === "Administrador" && (
-        <ListItem
+        {session?.user?.role === "Administrador" && (<ListItem
           button="true"
           onClick={() => router.push("/clientes")}
           sx={{
@@ -129,15 +120,14 @@ export default function Layout({ children }) {
             px: 3,
             py: 1.5,
           }}
-
         >
           <ListItemIcon sx={{ color: "#fff" }}>
             <PeopleIcon />
           </ListItemIcon>
           <ListItemText primary="Clientes" />
-        </ListItem>
-        )}
+        </ListItem>)}
         
+
         <ListItem
           button="true"
           onClick={() => router.push("/task")}
@@ -146,13 +136,14 @@ export default function Layout({ children }) {
             px: 3,
             py: 1.5,
           }}
-          
         >
           <ListItemIcon sx={{ color: "#fff" }}>
             <PeopleIcon />
           </ListItemIcon>
           <ListItemText primary="Tareas" />
         </ListItem>
+
+
 
         {session?.user?.role === "Administrador" && (<ListItem
           button="true"
@@ -167,27 +158,11 @@ export default function Layout({ children }) {
             <DashboardIcon />
           </ListItemIcon>
           <ListItemText primary="Dashboard" />
-        </ListItem>)
-        }
-{session?.user?.role === "Administrador" && (
-        <ListItem
+        </ListItem>)}
+
+        {session?.user?.role === "Administrador" && (<ListItem
           button="true"
-          onClick={() => router.push("/clientesRiesgo")}
-          sx={{
-            "&:hover": { bgcolor: "#2D3748" },
-            px: 3,
-            py: 1.5,
-          }}
-        >
-          <ListItemIcon sx={{ color: "#fff" }}>
-            <PeopleIcon />
-          </ListItemIcon>
-          <ListItemText primary="Seguimiento" />
-        </ListItem>
-        )}
-        {/* <ListItem
-          button="true"
-          onClick={() => router.push("/dashboard")}
+          onClick={() => router.push("/templates")}
           sx={{
             "&:hover": { bgcolor: "#2D3748" },
             px: 3,
@@ -197,8 +172,8 @@ export default function Layout({ children }) {
           <ListItemIcon sx={{ color: "#fff" }}>
             <DashboardIcon />
           </ListItemIcon>
-          <ListItemText primary="Dashboard" />
-        </ListItem> */}
+          <ListItemText primary="Plantillas" />
+        </ListItem>)}
         {/*
         <ListItem
           button="true"
@@ -230,24 +205,58 @@ export default function Layout({ children }) {
           </ListItemIcon>
           <ListItemText primary="Gestores" />
         </ListItem>*/}
-        {/* <ListItem
+        {/*<ListItem
           button="true"
           onClick={() => router.push("/promesasPago")}
           sx={{
             "&:hover": { bgcolor: "#2D3748" },
             px: 3,
             py: 1.5,
-          }}
+          }*}
         >
           <ListItemIcon sx={{ color: "#fff" }}>
             <CalendarMonthIcon />
           </ListItemIcon>
           <ListItemText primary="Promesas de Pago" />
-        </ListItem> */}
+        </ListItem>*/}
+
         {session?.user?.role === "Administrador" && (
-        <ListItem
+          <ListItem
+            button="true"
+            onClick={() => router.push("/campaigns")}
+            sx={{
+              "&:hover": { bgcolor: "#2D3748" },
+              px: 3,
+              py: 1.5,
+            }}
+          >
+            <ListItemIcon sx={{ color: "#fff" }}>
+              <CampaignIcon />
+            </ListItemIcon>
+            <ListItemText primary="Campañas" />
+          </ListItem>)
+        }
+
+        {session?.user?.role === "Administrador" && (
+          <ListItem
+            button="true"
+            onClick={() => router.push("/usuarios")}
+            sx={{
+              "&:hover": { bgcolor: "#2D3748" },
+              px: 3,
+              py: 1.5,
+            }}
+          >
+            <ListItemIcon sx={{ color: "#fff" }}>
+              <PeopleIcon />
+            </ListItemIcon>
+            <ListItemText primary="Usuarios" />
+          </ListItem>
+        )}
+
+        { <ListItem
           button="true"
-          onClick={() => router.push("/nuevasConver")}
+          onClick={() => router.push("/clientes_gestion")}
           sx={{
             "&:hover": { bgcolor: "#2D3748" },
             px: 3,
@@ -257,72 +266,9 @@ export default function Layout({ children }) {
           <ListItemIcon sx={{ color: "#fff" }}>
             <PeopleIcon />
           </ListItemIcon>
-          <ListItemText primary="Nuevas conversaciones" />
-        </ListItem>
-        )}
-        {session?.user?.role === "Administrador" && (<ListItem
-          button="true"
-          onClick={() => router.push("/templates")}
-          sx={{
-            "&:hover": { bgcolor: "#2D3748" },
-            px: 3,
-            py: 1.5,
-          }}
-        >
-          <ListItemIcon sx={{ color: "#fff" }}>
-            <DashboardIcon />
-          </ListItemIcon>
-          <ListItemText primary="Plantillas" />
-        </ListItem>)}
-        {session?.user?.role === "Administrador" && (
-        <ListItem
-          button="true"
-          onClick={() => router.push("/campaigns")}
-          sx={{
-            "&:hover": { bgcolor: "#2D3748" },
-            px: 3,
-            py: 1.5,
-          }}
-        >
-          <ListItemIcon sx={{ color: "#fff" }}>
-            <CampaignIcon />
-          </ListItemIcon>
-          <ListItemText primary="Campañas" />
-        </ListItem> 
-        )}
-        {session?.user?.role === "Administrador" && (
-        <ListItem
-          button="true"
-          onClick={() => router.push("/personalizado")}
-          sx={{
-            "&:hover": { bgcolor: "#2D3748" },
-            px: 3,
-            py: 1.5,
-          }}
-        >
-          <ListItemIcon sx={{ color: "#fff" }}>
-            <SendIcon />
-          </ListItemIcon>
-          <ListItemText primary="Envío" />
-        </ListItem> 
-        )}
-        {session?.user?.role === "Administrador" && (
-        <ListItem
-          button="true"
-          onClick={() => router.push("/usuarios")}
-          sx={{
-            "&:hover": { bgcolor: "#2D3748" },
-            px: 3,
-            py: 1.5,
-          }}
-          
-        >
-          <ListItemIcon sx={{ color: "#fff" }}>
-            <PeopleIcon />
-          </ListItemIcon>
-          <ListItemText primary="Usuarios" />
-        </ListItem>
-        )}
+          <ListItemText primary="Gestion" />
+        </ListItem> }
+
       </List>
       <Divider sx={{ bgcolor: "#2D3748" }} />
       <List>
@@ -372,15 +318,12 @@ export default function Layout({ children }) {
               style={{ height: 40, marginRight: 10 }}
             />
             <Typography variant="h6" noWrap component="div" sx={{ fontWeight: "bold" }}>
-              CÓDIGOS DE PAGOS
+              FIDELIZACION 
             </Typography>
           </Box>
-          <IconButton color="inherit" sx={{ mr: 2 }}>
-            <NotificationsIcon />
-          </IconButton>
+          {/*<Notificaciones></Notificaciones>*/}
           <Avatar
             alt="Usuario"
-            //src="https://trasplantecapilar.pe/wp-content/uploads/2024/09/logo-ifc.jpg"
             src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAAAJFBMVEVHcEztNyLsNyLnNiHuOCPtNyLtNyPuNyLuOCPrNiLuOCPuOCOxF7LxAAAAC3RSTlMASTUO7Gmkic4hukCMuxcAAAB2SURBVCiRzZLZDoAgDARLqVz9//9VTjXZkvjmvJGhkN2U6IaLSMgEObTByHkdIBmndECGKY+vk3n35xxFgzWLqCaYxL6PELd6QTAZc5VCttO0l9tngy2vkpPlQg3KrrEy9aN7rQRP6UFTv5P7NRltRCh7k093At7KD2uUo+ERAAAAAElFTkSuQmCC"
           />
         </Toolbar>
@@ -401,8 +344,8 @@ export default function Layout({ children }) {
             "& .MuiDrawer-paper": {
               boxSizing: "border-box",
               width: isDrawerOpen ? drawerWidth : 0,
-              backgroundColor: "#254e59", 
-              borderRight: "none",
+              backgroundColor: "#254e59", // 🔹 Asegura que el fondo es del mismo color
+              borderRight: "none", // 🔹 Elimina la línea entre el Drawer y el contenido
             },
           }}
         >
@@ -413,7 +356,7 @@ export default function Layout({ children }) {
         component="main"
         sx={{
           flexGrow: 1,
-          //p: 3,
+
           transition: "margin-left 0.3s",
           bgcolor: "#F7FAFC",
           height: "100%",
