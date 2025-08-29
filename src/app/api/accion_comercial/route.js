@@ -115,25 +115,36 @@ export async function POST(request) {
     // 4) Llamar a Meta API (ajusta el número si usas +51 delante)
     const metaBody = {
       messaging_product: "whatsapp",
-      to: normalizeTo(cliente_contacto.celular), // ej: "51987654321" o "+51987654321" según tu cuenta
+      to: cliente_contacto.celular, // ej: "51987654321" o "+51987654321" según tu cuenta
       type: "template",
       template: {
         name: plantilla.nombre_template,
         language: { code: "es_PE" },
-        components: [{ type: "body", parameters }]
+        components: [
+            {
+              type: "body",
+              parameters: [
+                {
+                  type: "text",
+                  text: variables.codigo
+                }
+              ]
+            }
+          ]
       }
     };
-
-    const metaResp = await fetch("https://graph.facebook.com/v18.0/710553965483257/messages", {
+    console.log('🚀 Enviando a Meta API:', JSON.stringify(metaBody, null, 2));
+    const metaResp = await fetch('https://graph.facebook.com/v18.0/710553965483257/messages', {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.META_ACCESS_TOKEN}`,
-        "Content-Type": "application/json",
+        'Authorization': `Bearer ${process.env.META_ACCESS_TOKEN}`,
+        'Content-Type': "application/json",
       },
       body: JSON.stringify(metaBody),
     });
 
     const metaJson = await metaResp.json();
+    console.log('📱 Respuesta de Meta API:', metaJson);
     if (!metaResp.ok) {
       console.error("Meta API error:", metaJson);
       return NextResponse.json({

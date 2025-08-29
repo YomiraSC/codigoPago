@@ -295,16 +295,36 @@ const ActionComercialModal = ({ open, onClose, cliente, gestores = [], onSaved }
       });
 
       const data = await res.json();
-      if (!res.ok) { console.error(data); alert(data.error || "Error al guardar y enviar"); return; }
+      // if (!res.ok) { console.error(data); alert(data.error || "Error al guardar y enviar"); return; }
+      // if (onSaved) onSaved();
+      // onClose();
+      // Considera 'success' explícito, no solo res.ok
+      if (!data?.success) {
+        console.error("Fallo en envío Meta:", data);
+        const detail =
+          data?.meta_error?.error?.error_user_msg ||
+          data?.meta_error?.error?.message ||
+          data?.warning ||
+          data?.error ||
+          "No se pudo enviar el mensaje";
+        alert(`Guardado en BD, pero falló el WhatsApp: ${detail}`);
+        return;
+      }
       if (onSaved) onSaved();
       onClose();
     } catch (e) {
       console.error(e); alert("Error de red al guardar/enviar");
     } finally { setEnviando(false); }
   };
-
+  const handleDialogRequestClose = (event, reason) => {
+    // No dejes cerrar mientras envía o si quieres obligar a leer el error
+    if (enviando) return;
+    // Bloquea cierres por click fuera o ESC
+    if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+    onClose();
+  };
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleDialogRequestClose} maxWidth="sm" fullWidth>
       <DialogTitle>Acción Comercial (Cliente)</DialogTitle>
       <DialogContent>
         <Typography variant="subtitle1" fontWeight="bold">
