@@ -53,40 +53,166 @@ export async function POST(request) {
       variables,           // { codigo }
       cliente_contacto     // { nombre, celular }  -> celular: 51XXXXXXXXX (sin +)
     } = await request.json();
-
+    console.log('📩 Datos recibidos en /api/accion_comercial:', {
+      cliente_id,
+      estado,
+      nota,
+      fecha_promesa_pago,
+      accion,
+      gestor,
+      plantilla_id,
+      variables,
+      cliente_contacto
+    });
     if (!gestor) return NextResponse.json({ error: "Falta gestor_username" }, { status: 400 });
-    if (!plantilla_id)    return NextResponse.json({ error: "Falta plantilla_id" }, { status: 400 });
-    if (!variables?.codigo) return NextResponse.json({ error: "Falta variables.codigo" }, { status: 400 });
-    if (!cliente_contacto?.nombre || !cliente_contacto?.celular)
-      return NextResponse.json({ error: "Faltan datos de cliente_contacto" }, { status: 400 });
+    if (!accion) return NextResponse.json({ error: "Falta acción comercial" }, { status: 400 });
 
     // 0) Resolver persona_id del gestor a partir del username
     const user = await prisma.usuario.findUnique({
       where: { username: gestor },
-      select: { usuario_id: true },          // == persona_id
+      select: { usuario_id: true },
     });
     if (!user) {
       return NextResponse.json({ error: `No existe usuario con username ${gestor}` }, { status: 404 });
     }
     const personaIdGestor = user.usuario_id;
 
-
-    // 1) Registrar acción comercial
-    const dataCreate = {
-        estado: estado || "",
-        nota: nota || "",
-        fecha_accion: new Date(),
-        //gestor: gestor
-        persona: { connect: { persona_id: personaIdGestor } },
-    };
-
-    // Conectar al cliente si se recibió un id válido
+    // 0.1) Actualizar gestor en cliente
     if (cliente_id != null && cliente_id !== "" && !Number.isNaN(Number(cliente_id))) {
-    dataCreate.cliente = { connect: { cliente_id: Number(cliente_id) } };
-    // ^^^ Usa el nombre de la PK tal como está en el modelo `cliente` (aquí: cliente_id)
+      await prisma.cliente.update({
+        where: { cliente_id: Number(cliente_id) },
+        data: { gestor: gestor, accion: accion }
+      });
     }
 
-    const accionCom = await prisma.accion_comercial.create({ data: dataCreate });
+
+    // 1) Si es Promesa de pago, registrar cita y acción comercial, NO WhatsApp
+    if (accion === "Promesa de pago" && fecha_promesa_pago) {
+      // Registrar promesa/cita
+      await prisma.cita.create({
+        data: {
+          cliente_id: Number(cliente_id),
+          fecha_cita: new Date(fecha_promesa_pago),
+          estado_cita: "Promesa de Pago",
+          motivo: "Promesa de Pago registrada",
+          fecha_creacion: new Date(),
+        },
+      });
+      // Registrar acción comercial
+      const accionCom = await prisma.accion_comercial.create({
+        data: {
+          cliente_id: Number(cliente_id),
+          estado: accion,
+          fecha_accion: new Date(),
+          nota: nota || "Promesa de pago registrada",
+          gestor: gestor,
+        },
+      });
+      return NextResponse.json({
+        success: true,
+        message: "Promesa de pago registrada",
+        accion_comercial: accionCom
+      });
+    }
+
+    // 2) Si es Codigo entregado, registrar acción comercial y enviar WhatsApp
+    if (accion === "Codigo entregado") {
+      if (!plantilla_id)    return NextResponse.json({ error: "Falta plantilla_id" }, { status: 400 });
+      if (!variables?.codigo) return NextResponse.json({ error: "Falta variables.codigo" }, { status: 400 });
+      if (!cliente_contacto?.nombre || !cliente_contacto?.celular)
+        return NextResponse.json({ error: "Faltan datos de cliente_contacto" }, { status: 400 });
+
+      // Registrar acción comercial
+      const accionCom = await prisma.accion_comercial.create({
+        data: {
+          cliente_id: Number(cliente_id),
+          estado: accion,
+          fecha_accion: new Date(),
+          nota: nota || " ",
+          gestor: gestor,
+        },
+      });
+
+      // Cargar plantilla
+      const plantilla = await prisma.template.findUnique({
+        where: { id: parseInt(plantilla_id) },
+        select: { id: true, nombre_template: true, mensaje: true }
+      });
+      if (!plantilla) return NextResponse.json({ error: "Plantilla no encontrada" }, { status: 404 });
+
+      // Preparar parámetros dinámicos de acuerdo al mensaje
+      const placeholders = extractPlaceholders(plantilla.mensaje || "");
+      const parameters = buildMetaParameters(placeholders, {
+        nombre: cliente_contacto.nombre,
+        codigo: variables.codigo
+      });
+
+      // Llamar a Meta API (ajusta el número si usas +51 delante)
+      const metaBody = {
+        messaging_product: "whatsapp",
+        to: cliente_contacto.celular,
+        type: "template",
+        template: {
+          name: plantilla.nombre_template,
+          language: { code: "es_PE" },
+          components: [
+            {
+              type: "body",
+              parameters: [
+                {
+                  type: "text",
+                  text: variables.codigo
+                }
+              ]
+            }
+          ]
+        }
+      };
+      console.log('🚀 Enviando a Meta API:', JSON.stringify(metaBody, null, 2));
+      const metaResp = await fetch('https://graph.facebook.com/v18.0/710553965483257/messages', {
+        method: "POST",
+        headers: {
+          'Authorization': `Bearer ${process.env.META_ACCESS_TOKEN}`,
+          'Content-Type': "application/json",
+        },
+        body: JSON.stringify(metaBody),
+      });
+
+      const metaJson = await metaResp.json();
+      console.log('📱 Respuesta de Meta API:', metaJson);
+      if (!metaResp.ok) {
+        console.error("Meta API error:", metaJson);
+        return NextResponse.json({
+          success: false,
+          warning: "Acción registrada pero fallo envío de mensaje",
+          meta_error: metaJson,
+          accion_comercial: accionCom
+        }, { status: 207 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "Acción comercial registrada y mensaje enviado",
+        meta_message_id: metaJson?.messages?.[0]?.id || null,
+        accion_comercial: accionCom
+      });
+    }
+
+    // Si no es ninguna de las dos, solo registrar acción comercial genérica
+    const accionCom = await prisma.accion_comercial.create({
+      data: {
+        cliente_id: Number(cliente_id),
+        estado: accion,
+        fecha_accion: new Date(),
+        nota: nota || "Acción comercial registrada",
+        gestor: gestor,
+      },
+    });
+    return NextResponse.json({
+      success: true,
+      message: "Acción comercial registrada",
+      accion_comercial: accionCom
+    });
     // 1) Registrar acción comercial
     // const accionCom = await prisma.accion_comercial.create({
     //   data: {

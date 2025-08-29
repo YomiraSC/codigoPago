@@ -48,22 +48,19 @@ import ConversationModal from '@/app/components/ConversationModal';
 
 // Estados disponibles con sus colores
 const ESTADOS = {
-  'Comunicacion inmediata': { color: '#dc2626', bgcolor: '#fef2f2' }, // Rojo urgente
-  'Gestion de contrato': { color: '#2563eb', bgcolor: '#eff6ff' }, // Azul
-  'Negociacion de pago': { color: '#ea580c', bgcolor: '#fff7ed' }, // Naranja
-  'Duda agresiva no resuelta': { color: '#dc2626', bgcolor: '#fef2f2' }, // Rojo fuerte
-  'Duda no resuelta': { color: '#d97706', bgcolor: '#fffbeb' }, // Amarillo oscuro
-  'Enojado': { color: '#991b1b', bgcolor: '#fef2f2' }, // Rojo muy oscuro
-  'No interesado': { color: '#6b7280', bgcolor: '#f9fafb' }, // Gris
-  'Promesa de pago': { color: '#059669', bgcolor: '#f0fdf4' }, // Verde
-  'Duda resuelta': { color: '#16a34a', bgcolor: '#f0fdf4' }, // Verde claro
+  'Promesa de pago': { color: '#059669', bgcolor: '#f0fdf4' },      // Verde
+  'Duda resuelta': { color: '#16a34a', bgcolor: '#f0fdf4' },        // Verde claro
+  'Duda no resuelta': { color: '#d97706', bgcolor: '#fffbeb' },     // Amarillo oscuro
+  'Codigo entregado': { color: '#2563eb', bgcolor: '#eff6ff' },     // Azul
+  'Codigo no entregado': { color: '#dc2626', bgcolor: '#fef2f2' },  // Rojo
 };
 
 const ESTADOS_ASESOR = {
-  'Seguimiento - Duda no resuelta': { color: '#d97706', bgcolor: '#fffbeb' },
-  'No interesado': { color: '#6b7280', bgcolor: '#f9fafb' },
-  'Promesa de Pago': { color: '#059669', bgcolor: '#f0fdf4' },
-  'Seguimiento - Duda resuelta': { color: '#16a34a', bgcolor: '#f0fdf4' },
+  'Promesa de pago': { color: '#059669', bgcolor: '#f0fdf4' },      // Verde
+  'Duda resuelta': { color: '#16a34a', bgcolor: '#f0fdf4' },        // Verde claro
+  'Duda no resuelta': { color: '#d97706', bgcolor: '#fffbeb' },     // Amarillo oscuro
+  'Codigo entregado': { color: '#2563eb', bgcolor: '#eff6ff' },     // Azul
+  'Codigo no entregado': { color: '#dc2626', bgcolor: '#fef2f2' },  // Rojo
 };
 
 // Header profesional más compacto
@@ -198,16 +195,16 @@ function ModernClientesTable({
                   )}
                 </TableCell>
                 <TableCell>
-                  {cliente.estado_asesor && (
+                  {cliente.accion && (
                     <Chip
-                      label={cliente.estado_asesor}
+                      label={cliente.accion}
                       size="small"
                       sx={{
                         fontWeight: 500,
                         fontSize: '0.75rem',
-                        ...getEstadoColor(cliente.estado_asesor, true),
-                        bgcolor: getEstadoColor(cliente.estado_asesor, true).bgcolor,
-                        color: getEstadoColor(cliente.estado_asesor, true).color,
+                        ...getEstadoColor(cliente.accion, true),
+                        bgcolor: getEstadoColor(cliente.accion, true).bgcolor,
+                        color: getEstadoColor(cliente.accion, true).color,
                       }}
                     />
                   )}
