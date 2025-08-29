@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 // Mapeo de estados del frontend a estados exactos de la base de datos
 const estadosMapping = {
-  'Codigo no entregado': ['Codigo no entregado'],
+  'Codigo no entregado': ['Codigo no entregado', 'Código no entregado', 'Seguimiento - Código no entregado'],
   'duda no resuelta': ['Duda agresiva no resuelta', 'Duda no resuelta', 'Seguimiento - Duda no resuelta']
 };
 
