@@ -166,11 +166,16 @@ import db from "@/lib/firebase";
       
       // Consultar Firestore: Obtener mensajes del cliente con id_bot = codigopago
     
-  const mensajesRef = db.collection("test")
-  .where("celular", "==", celularFormatted)
-  .where("id_bot", "==", "codigopago")
-  .orderBy("fecha", "asc");      // ← aquí
-
+  // const mensajesRef = db.collection("test")
+  // .where("celular", "==", celularFormatted)
+  // .where("id_bot", "==", "codigopago")
+  // .orderBy("fecha", "asc");      // ← aquí
+  let celularSinMas = celularFormatted.startsWith("+") ? celularFormatted.slice(1) : celularFormatted;
+  let celularesParaBuscar = [celularFormatted, celularSinMas];
+    const mensajesRef = db.collection("test")
+    .where("celular", "in", celularesParaBuscar)
+    .where("id_bot", "in", ["codigopago", "codigopago"]); 
+  
 
   console.log("📞 Buscando mensajes para celular:", celularFormatted);
 
