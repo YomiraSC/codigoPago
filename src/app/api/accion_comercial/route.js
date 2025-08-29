@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import db from "@/lib/firebase";
 
 // Extrae placeholders en orden de aparición: {{nombre}}, {{codigo}} o {{1}}
 function extractPlaceholders(str) {
@@ -188,6 +189,50 @@ export async function POST(request) {
           meta_error: metaJson,
           accion_comercial: accionCom
         }, { status: 207 });
+      }
+
+// ================================
+     // 🔥 Guardar en Firestore (solo éxito)
+      try {
+        console.log("🔥 [FIREBASE] Guardando mensaje en Firestore");
+        const wamid  = metaJson?.messages?.[0]?.id || null;
+        const status = metaJson?.messages?.[0]?.message_status || "accepted";
+
+        // Número normalizado (solo dígitos)
+        const to = String(cliente_contacto.celular).replace(/\D/g, "");
+
+        // Construye el mensaje final como fue mostrado en la vista previa
+        const nombre = (cliente_contacto?.nombre || "").trim();
+        const codigo = (variables?.codigo || "").trim();
+        let   mensajeFinal = String(plantilla.mensaje || "");
+        mensajeFinal = mensajeFinal.replace(/\{\{\s*nombre\s*\}\}/gi, nombre || "[NOMBRE]");
+        mensajeFinal = mensajeFinal.replace(/\{\{\s*codigo\s*\}\}/gi, codigo || "[CÓDIGO]");
+        // Compatibilidad con templates numerados (asumimos {{1}} = código)
+        mensajeFinal = mensajeFinal.replace(/\{\{\s*1\s*\}\}/g, codigo || "[CÓDIGO]");
+
+        const firebaseDoc = {
+          celular: to,
+          fecha: new Date(), // Firestore lo guarda como Timestamp
+          id_bot: "codigopago",
+          id_cliente: Number(cliente_id) || null,
+          mensaje: mensajeFinal,
+          template_name: plantilla.nombre_template,
+          sender: "false",             // saliente
+          message_id: wamid,
+          estado: status,              // 'accepted' (entrega final llega por webhook)
+          gestor,
+          accion
+        };
+
+        await db
+          .collection("test")
+          .doc(to)                     // si prefieres histórico, usa .doc(`${to}_${wamid}`)
+          .set(firebaseDoc, { merge: true });
+
+        console.log("✅ [FIREBASE] Mensaje guardado en Firestore");
+      } catch (e) {
+        console.error("🔥 [FIREBASE] Error guardando mensaje:", e);
+        // No interrumpimos el flujo de éxito si falla Firestore
       }
 
       return NextResponse.json({

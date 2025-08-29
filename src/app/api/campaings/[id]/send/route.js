@@ -263,7 +263,7 @@ class WhatsAppCampaignManager {
         const firebaseDoc = {
           celular: cliente.celular,
           fecha: admin.firestore.Timestamp.fromDate(new Date()),
-          id_bot: "fidelizacionbot",
+          id_bot: "codigopago",
           id_cliente: cliente.cliente_id,
           mensaje: mensajeFinal,
           template_name: template.nombre_template,
@@ -273,7 +273,7 @@ class WhatsAppCampaignManager {
           estado: result.status
         };
 
-        await db.collection("fidelizacion").doc(cliente.celular).set(firebaseDoc, { merge: true });
+        await db.collection("test").doc(cliente.celular).set(firebaseDoc, { merge: true });
         console.log(`✅ [FIREBASE] Mensaje guardado en Firestore`);
         
       } else {
