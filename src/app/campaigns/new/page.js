@@ -44,8 +44,8 @@ export default function CampaignPage() {
   const [loadingColumns, setLoadingColumns] = useState(false);  // Estado para saber si estamos cargando las columnas
   const [clients, setClients] = useState([]); 
   const [selectedColumns, setSelectedColumns] = useState({
-  segmentacion: 'segmentacion',
-  estrategia: 'gestion'
+  segmentacion: 'Frente',
+  estrategia: 'Estrategia_'
   });
   // Datos simulados
   const [databases, useDatabases] = useState([]);
@@ -175,9 +175,9 @@ const handleSubmit = async () => {
       const response = await axiosInstance.get("/bigquery/columns/filtros", {
         params: {
           database: value,
-          segmentColumn: "segmentacion",
+          segmentColumn: "Frente",
         //   clusterColumn: "Cluster",
-          estrategiaColumn: "gestion",
+          estrategiaColumn: "Estrategia_",
         //   fechaCuotaColumn: "Fec_Venc_Cuota",
         //   lineaColumn: "Linea"
         }  // Enviamos los nombres de las columnas seleccionadas

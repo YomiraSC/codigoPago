@@ -128,7 +128,7 @@ model cliente_campanha {
 model codigo_pago {
   id_codigo_pago    Int       @id @default(autoincrement())
   cliente_id        Int?
-  codigo            String    @unique @db.VarChar(50)
+  codigo            String    @db.VarChar(50)
   tipo_codigo       String?   @db.VarChar(50)
   caso_relacionado  String?   @db.VarChar(100)
   fecha_asignacion  DateTime  @db.Date

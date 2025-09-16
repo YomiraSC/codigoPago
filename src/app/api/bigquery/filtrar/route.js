@@ -187,8 +187,8 @@ join_fondos AS (
 )
 SELECT
   DNI as documento_identidad,
-  segmentacion,
-  Gestion,
+  Frente as segmentacion,
+  Estrategia_ as Gestion,
   telefono as celular,
   nombre,
   IFNULL(STRING_AGG(DISTINCT CAST(Cod_Bco AS STRING), ', '), '') AS code_pago 
