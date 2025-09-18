@@ -179,11 +179,21 @@ const QUERY = `
   join_fondos AS (
     SELECT
       b.*,
+      f.Codigo_Asociado,
       REGEXP_REPLACE(TRIM(CAST(f.Cod_Bco AS STRING)), r',$', '') AS Cod_Bco
     FROM base_filtrada b
     LEFT JOIN peak-emitter-350713.FR_general.bd_fondos f
       ON REGEXP_REPLACE(CAST(b.DNI AS STRING), r'[^0-9]', '') =
          REGEXP_REPLACE(CAST(f.N_Doc AS STRING), r'[^0-9]', '')
+  ),
+  -- LEFT JOIN con cobranza_mes_actual por Codigo_Asociado
+  excluidos AS (
+    SELECT
+      j.* 
+    FROM join_fondos j
+    LEFT JOIN peak-emitter-350713.FR_general.cobranza_mes_actual c
+      ON CAST(j.Codigo_Asociado AS STRING) = CAST(c.Codigo_Asociado AS STRING)
+    WHERE c.Codigo_Asociado IS NULL
   ),
   ranked AS (
     SELECT
@@ -194,7 +204,7 @@ const QUERY = `
       nombre,
       IFNULL(STRING_AGG(DISTINCT CAST(Cod_Bco AS STRING), ', '), '') AS code_pago,
       ROW_NUMBER() OVER (PARTITION BY DNI ORDER BY DNI) as rn
-    FROM join_fondos
+    FROM excluidos
     GROUP BY
       DNI, segmentacion, Gestion, telefono, nombre
   )
