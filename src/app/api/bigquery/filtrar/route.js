@@ -172,30 +172,41 @@ export async function POST(req) {
 
 const QUERY = `
    WITH base_filtrada AS (
-  SELECT *
-  FROM \`${project}.${dataset}.${table}\`
-  WHERE ${whereSQL}
-),
-join_fondos AS (
+    SELECT *
+    FROM \`${project}.${dataset}.${table}\`
+    WHERE ${whereSQL}
+  ),
+  join_fondos AS (
+    SELECT
+      b.*,
+      REGEXP_REPLACE(TRIM(CAST(f.Cod_Bco AS STRING)), r',$', '') AS Cod_Bco
+    FROM base_filtrada b
+    LEFT JOIN peak-emitter-350713.FR_general.bd_fondos f
+      ON REGEXP_REPLACE(CAST(b.DNI AS STRING), r'[^0-9]', '') =
+         REGEXP_REPLACE(CAST(f.N_Doc AS STRING), r'[^0-9]', '')
+  ),
+  ranked AS (
+    SELECT
+      DNI as documento_identidad,
+      Frente as segmentacion,
+      Estrategia_ as Gestion,
+      telefono as celular,
+      nombre,
+      IFNULL(STRING_AGG(DISTINCT CAST(Cod_Bco AS STRING), ', '), '') AS code_pago,
+      ROW_NUMBER() OVER (PARTITION BY DNI ORDER BY DNI) as rn
+    FROM join_fondos
+    GROUP BY
+      DNI, segmentacion, Gestion, telefono, nombre
+  )
   SELECT
-    b.*,
-    REGEXP_REPLACE(TRIM(CAST(f.Cod_Bco AS STRING)), r',$', '') AS Cod_Bco
-  FROM base_filtrada b
-  LEFT JOIN peak-emitter-350713.FR_general.bd_fondos f
-    ON REGEXP_REPLACE(CAST(b.DNI AS STRING), r'[^0-9]', '') =
-       REGEXP_REPLACE(CAST(f.N_Doc AS STRING), r'[^0-9]', '')
-)
-SELECT
-  DNI as documento_identidad,
-  Frente as segmentacion,
-  Estrategia_ as Gestion,
-  telefono as celular,
-  nombre,
-  IFNULL(STRING_AGG(DISTINCT CAST(Cod_Bco AS STRING), ', '), '') AS code_pago 
-FROM join_fondos
-GROUP BY
-  DNI, segmentacion, Gestion, telefono, nombre;
-
+    documento_identidad,
+    segmentacion,
+    Gestion,
+    celular,
+    nombre,
+    code_pago
+  FROM ranked
+  WHERE rn = 1;
 `;
     console.log('Consulta SQL:', QUERY);
 

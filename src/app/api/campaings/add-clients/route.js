@@ -63,7 +63,9 @@ export async function POST(req, context) {
       const celular = client.celular;
       return celular ? "+51" + celular.toString().replace(/\s+/g, "") : null;
     }).filter(Boolean);
-
+    const documentos = clients
+      .map(client => client.documento_identidad ? String(client.documento_identidad) : null)
+      .filter(Boolean);
     const result = await prisma.$transaction(async (prisma) => {
       // Crear la campaña
       const campanha = await prisma.campanha.create({
@@ -78,111 +80,167 @@ export async function POST(req, context) {
           variable_mappings: variableMappings,
         },
       });
-
+      
       console.log("Campaña creada con ID:", campanha.campanha_id);
 
       if (clients.length > 0) {
         // OPTIMIZACIÓN 2: Obtener todos los clientes existentes de una vez
-        const clientesExistentes = await prisma.cliente.findMany({
-          where: {
-            celular: { in: celulares }
-          },
-          select: {
-            cliente_id: true,
-            celular: true
-          }
-        });
+        // ...existing code...
+      const clientesExistentes = await prisma.cliente.findMany({
+        where: {
+          OR: [
+            { celular: { in: celulares } },
+            { documento_identidad: { in: documentos } }
+          ]
+        },
+        select: {
+          cliente_id: true,
+          celular: true,
+          documento_identidad: true
+        }
+      });
+// ...existing code...
 
         // Crear mapa para búsqueda rápida
-        const clientesMap = new Map(
-          clientesExistentes.map(c => [c.celular, c])
-        );
+        // ...existing code...
+        const clientesMap = new Map();
+        for (const c of clientesExistentes) {
+          if (c.celular) clientesMap.set(c.celular, c);
+          if (c.documento_identidad) clientesMap.set(c.documento_identidad, c);
+        }
+// ...existing code...
 
         // OPTIMIZACIÓN 3: Preparar datos para inserción masiva
         const clientesParaCrear = [];
         const asociacionesParaCrear = [];
         const firestoreOps = [];
 
+        const clientesParaActualizar = [];
+        
         for (const clientData of clients) {
-          console.log("Datos del cliente:", clientData);
           const { nombre, celular, code_pago, documento_identidad } = clientData;
           const finalNombre = nombre || "Nombre desconocido";
           const finalCelular = celular ? "+51" + celular.toString().replace(/\s+/g, "") : null;
-          console.log("Procesando cliente:", finalCelular);
-          const finalCodPago = code_pago || "";
+          const finalCodPago = code_pago && code_pago.trim() !== "" ? String(code_pago).slice(0, 50) : null;
+          
           if (!finalCelular) continue;
 
-          let cliente = clientesMap.get(finalCelular);
+          let cliente = clientesMap.get(finalCelular) || (documento_identidad ? clientesMap.get(String(documento_identidad)) : undefined);
 
           if (cliente) {
-            // **Cliente ya existe: actualizamos sus nuevos campos**
-            await prisma.cliente.update({
-              where: { cliente_id: cliente.cliente_id },
-              data: {
-                celular: finalCelular,
-                code_pago: finalCodPago,
-              }
-            });
-
-
-          } else {
-            // Cliente nuevo: lo metemos en el array para createMany
-            console.log("Cliente nuevoaaaaaaaaasdasdasdaaa pusheado a crear:", finalCelular);
-
-            clientesParaCrear.push({
-              nombre: finalNombre,
+            // Cliente ya existe: preparar para actualización masiva
+            clientesParaActualizar.push({
+              cliente_id: cliente.cliente_id,
               celular: finalCelular,
-              documento_identidad: documento_identidad || "",
-              categoria_no_interes: " ",
-              bound: false,
+              code_pago: finalCodPago,
+            });
+          } else {
+            // Cliente nuevo: agregar al array para createMany
+            clientesParaCrear.push({
+              nombre: finalNombre?.toString().slice(0, 100) || "Nombre desconocido",
+              celular: finalCelular?.toString().slice(0, 20),
+              documento_identidad: documento_identidad ? String(documento_identidad).slice(0, 12) : "",
               estado: " ",
-              observacion: "Observación no proporcionada",
-              score: "no_score",
               fecha_creacion: new Date(),
               code_pago: finalCodPago,
             });
-            console.log("Cliente nuevoaaaaaaaaaaa pusheado a crear:", finalCelular);
-
           }
+        }
 
+        // Actualización masiva de clientes existentes
+        if (clientesParaActualizar.length > 0) {
+          console.log("Actualizando clientes existentes:", clientesParaActualizar.length);
+          
+          // Optimización: Actualizar en paralelo usando Promise.all
+          const updatePromises = clientesParaActualizar.map(clienteUpdate => 
+            prisma.cliente.update({
+              where: { cliente_id: clienteUpdate.cliente_id },
+              data: {
+                celular: clienteUpdate.celular,
+                code_pago: clienteUpdate.code_pago,
+              }
+            })
+          );
+          
+          await Promise.all(updatePromises);
+          console.log("Clientes actualizados:", clientesParaActualizar.length);
         }
 
         // OPTIMIZACIÓN 4: Inserción masiva de clientes nuevos
         let clientesCreados = [];
         if (clientesParaCrear.length > 0) {
-          clientesCreados = await prisma.cliente.createManyAndReturn({
-            data: clientesParaCrear
+          console.log("Creando clientes nuevos:", clientesParaCrear.length);
+          
+          await prisma.cliente.createMany({
+            data: clientesParaCrear,
+            skipDuplicates: true
           });
+          
+          console.log("Clientes creados, ahora consultando...");
+          
+          // Consultar los clientes recién creados
+          const nuevosCelulares = clientesParaCrear.map(c => c.celular);
+          clientesCreados = await prisma.cliente.findMany({
+            where: { 
+              celular: { in: nuevosCelulares } 
+            }
+          });
+          
+          console.log("Clientes consultados:", clientesCreados.length);
         }
 
         // Crear mapa completo con clientes nuevos y existentes
         const todosClientes = new Map(clientesMap);
-        clientesCreados.forEach(c => todosClientes.set(c.celular, c));
+        clientesCreados.forEach(c => {
+          if (c.celular) todosClientes.set(c.celular, c);
+          if (c.documento_identidad) todosClientes.set(c.documento_identidad, c);
+        });
+
+        // OPTIMIZACIÓN: Manejo masivo de códigos de pago
+        const codigosParaCrear = [];
+        const codigosPago = clients
+          .map(c => c.code_pago)
+          .filter(codigo => codigo && codigo.trim() !== "");
+
+        // Obtener códigos existentes de una vez
+        const codigosExistentes = codigosPago.length > 0 ? await prisma.codigo_pago.findMany({
+          where: { codigo: { in: codigosPago } },
+          select: { codigo: true }
+        }) : [];
+
+        const codigosExistentesSet = new Set(codigosExistentes.map(c => c.codigo));
 
         for (const clientData of clients) {
           const finalCelular = clientData.celular ? "+51" + clientData.celular.toString().replace(/\s+/g, "") : null;
-          if (!finalCelular || !clientData.code_pago) continue;
+          
+          // Solo procesar si hay celular Y código de pago válido
+          if (!finalCelular || !clientData.code_pago || clientData.code_pago.trim() === "") continue;
 
           const cliente = todosClientes.get(finalCelular);
           if (!cliente) continue;
 
-          // Verifica si ya existe el código para evitar duplicados
-          const codigoExistente = await prisma.codigo_pago.findUnique({
-            where: { codigo: clientData.code_pago }
-          });
-
-          if (!codigoExistente) {
-            await prisma.codigo_pago.create({
-              data: {
-                cliente_id: cliente.cliente_id,
-                codigo: clientData.code_pago,
-                tipo_codigo: " ",
-                fecha_asignacion: new Date(),
-                activo: true,
-                pago_realizado: false
-              }
+          // Solo crear código si no existe
+          if (!codigosExistentesSet.has(clientData.code_pago)) {
+            codigosParaCrear.push({
+              cliente_id: cliente.cliente_id,
+              codigo: clientData.code_pago.toString().slice(0, 50),
+              tipo_codigo: " ",
+              fecha_asignacion: new Date(),
+              activo: true,
+              pago_realizado: false
             });
+            // Agregar al set para evitar duplicados en este mismo batch
+            codigosExistentesSet.add(clientData.code_pago);
           }
+        }
+
+        // Inserción masiva de códigos de pago
+        if (codigosParaCrear.length > 0) {
+          console.log("Creando códigos de pago:", codigosParaCrear.length);
+          await prisma.codigo_pago.createMany({
+            data: codigosParaCrear,
+            skipDuplicates: true
+          });
         }
 
         // OPTIMIZACIÓN 5: Preparar asociaciones y operaciones Firestore
@@ -263,7 +321,7 @@ export async function POST(req, context) {
     return addCorsHeaders(response);
 
   } catch (error) {
-    console.error("❌ Error:", error);
+    console.error("❌ Error:", error.message);
     const errorResponse = NextResponse.json({
       error: "Error al crear la campaña o agregar clientes",
       details: error.message,

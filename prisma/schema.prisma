@@ -77,11 +77,11 @@ model cita {
 
 model cliente {
   cliente_id                   Int                @id @default(autoincrement())
-  documento_identidad          String?            @unique(map: "unique_documento_identidad") @db.VarChar(12)
+  documento_identidad          String?            @unique(map: "unique_documento_identidad") @db.VarChar(100)
   tipo_documento               String?            @db.VarChar(20)
   nombre                       String             @db.VarChar(100)
   apellido                     String?            @db.VarChar(100)
-  celular                      String             @db.VarChar(20)
+  celular                      String             @db.VarChar(100)
   email                        String?            @unique @db.VarChar(100)
   fecha_creacion               DateTime?          @default(now()) @db.Timestamp(6)
   fecha_ultima_interaccion     DateTime?          @db.Timestamp(6)
@@ -97,7 +97,7 @@ model cliente {
   in_out                       Boolean?           @default(false)
   score                        String             @default("no_score") @db.VarChar(20)
   fecha_ultimo_estado          DateTime?          @db.Timestamp(6)
-  code_pago                    String?            @db.VarChar(50)
+  code_pago                    String?            @db.VarChar(100)
   accion_comercial             accion_comercial[]
   cita                         cita[]
   cliente_campanha             cliente_campanha[]
@@ -128,7 +128,7 @@ model cliente_campanha {
 model codigo_pago {
   id_codigo_pago    Int       @id @default(autoincrement())
   cliente_id        Int?
-  codigo            String    @db.VarChar(50)
+  codigo            String    @db.VarChar(100)
   tipo_codigo       String?   @db.VarChar(50)
   caso_relacionado  String?   @db.VarChar(100)
   fecha_asignacion  DateTime  @db.Date
