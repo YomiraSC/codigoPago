@@ -17,14 +17,25 @@ export function useClientes() {
   const gestoresLoaded = useRef(false);
   const initialLoadDone = useRef(false);
   const [filters, setFilters] = useState({
+    // search: "",
+    // estado: "Todos",
+    // bound: "Todos",
+    // fechaInicio: "",
+    // fechaFin: "",
+    // fechaRegistro: "",
     search: "",
     estado: "Todos",
     bound: "Todos",
+    interaccionBot: "Todos",   // ← nuevo
+    accionComercial: "Todos",  // ← nuevo
     fechaInicio: "",
     fechaFin: "",
     fechaRegistro: "",
   });
-
+  const setFiltersAndResetPage = (updater) => {
+  setPagination((p) => ({ ...p, page: 0 }));
+  setFilters(updater);
+  };
   const [pagination, setPagination] = useState({ 
     page: 0,        // Material-UI usa 0-based indexing
     pageSize: 10
@@ -147,7 +158,7 @@ export function useClientes() {
     gestores,
     loading, 
     filters,
-    setFilters,
+    setFilters: setFiltersAndResetPage,
     pagination, 
     setPagination, 
     sortModel, 
