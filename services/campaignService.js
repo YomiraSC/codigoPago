@@ -13,7 +13,7 @@ import axiosInstance from "./api";
 // };
 
 const API_URL = "/campaigns";
-const CLOUD_RUN_URL = "https://envios-meta-service-codpago-763512810578.us-central1.run.app";
+const CLOUD_RUN_URL = "https://envios-meta-service-codpago-763512810578.us-west1.run.app";
 export const getCampaigns = async (page = 1, pageSize = 10) => {
     const response = await axiosInstance.get(`/campaigns?page=${page}&pageSize=${pageSize}`);
     return response.data;
