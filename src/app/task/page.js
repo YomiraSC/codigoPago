@@ -469,6 +469,7 @@ function EnvioMensajeCard({ onOpenModal, mensajesStats }) {
 
 // Modal para envío de mensajes
 function EnvioMensajeModal({ open, onClose, onSuccess }) {
+  const { data: session } = useSession();
   const [celular, setCelular] = useState('');
   const [codigo, setCodigo] = useState('');
   const [clienteEncontrado, setClienteEncontrado] = useState(null);
