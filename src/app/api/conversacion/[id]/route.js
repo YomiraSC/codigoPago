@@ -174,7 +174,8 @@ import db from "@/lib/firebase";
   let celularesParaBuscar = [celularFormatted, celularSinMas];
     const mensajesRef = db.collection("test")
     .where("celular", "in", celularesParaBuscar)
-    .where("id_bot", "in", ["codigopago", "codigopago"]); 
+    .where("id_bot", "in", ["codigopago", "codigopago"])
+    .orderBy("fecha", "asc"); 
   
 
   console.log("📞 Buscando mensajes para celular:", celularFormatted);
