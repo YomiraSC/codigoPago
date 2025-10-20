@@ -307,8 +307,8 @@ export async function POST(req, context) {
       };
     },
       {
-        timeout: 200000,
-        maxWait: 20000
+        timeout: 2000000,
+        maxWait: 200000
       }
     );
 
