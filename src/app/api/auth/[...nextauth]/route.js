@@ -52,7 +52,7 @@ export const authOptions = {
               email: usuario.email,
               rol_id: usuario.rol_id,
               role: usuario.rol.nombre_rol, // 🔹 Se obtiene el rol del backend
-              tokenExpires: Date.now() + 3600 * 1000, // 🔹 Expiración en 1 hora
+              //tokenExpires: Date.now() + 3600 * 1000, // 🔹 Expiración en 1 hora
             };
           } catch (error) {
             console.error("❌ Error en autenticación:", error.message);
@@ -71,15 +71,15 @@ export const authOptions = {
         token.username = user.name;
         token.rol_id = user.rol_id;
         token.role = user.role;
-        token.token = user.token;
-        token.expiresAt = user.expiresAt;
+        //token.token = user.token;
+        //token.expiresAt = user.expiresAt;
       }
 
       // 🔹 Si el token ha expirado, invalidar sesión
-      if (Date.now() > token.expiresAt) {
-        console.log("🔄 Token expirado. Cerrando sesión automáticamente.");
-        return null;
-      }
+      // if (Date.now() > token.expiresAt) {
+      //   console.log("🔄 Token expirado. Cerrando sesión automáticamente.");
+      //   return null;
+      // }
 
       return token;
     },
@@ -93,14 +93,14 @@ export const authOptions = {
       session.user.username = token.username;
       session.user.rol_id = token.rol_id;
       session.user.role = token.role;
-      session.user.token = token.token;
+      //session.user.token = token.token;
 
       return session;
     },
   },
   session: {
     strategy: "jwt",
-    maxAge: 3600, // ⏳ Expira en 1 hora
+    //maxAge: 3600, // ⏳ Expira en 1 hora
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
