@@ -98,6 +98,7 @@ model cliente {
   score                        String             @default("no_score") @db.VarChar(20)
   fecha_ultimo_estado          DateTime?          @db.Timestamp(6)
   code_pago                    String?            @db.VarChar(100)
+  modelo                       String?            @db.VarChar
   accion_comercial             accion_comercial[]
   cita                         cita[]
   cliente_campanha             cliente_campanha[]

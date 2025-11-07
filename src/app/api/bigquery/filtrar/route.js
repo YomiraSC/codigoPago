@@ -179,11 +179,11 @@ const QUERY = `
   join_fondos AS (
     SELECT
       b.*,
-      f.Codigo_Asociado,
+      f.Codigo_Asociado AS codigo_asociado_fondos,
       REGEXP_REPLACE(TRIM(CAST(f.Cod_Bco AS STRING)), r',$', '') AS Cod_Bco
     FROM base_filtrada b
     LEFT JOIN peak-emitter-350713.FR_general.bd_fondos f
-      ON REGEXP_REPLACE(CAST(b.DNI AS STRING), r'[^0-9]', '') =
+      ON REGEXP_REPLACE(CAST(b.N_Doc AS STRING), r'[^0-9]', '') =
          REGEXP_REPLACE(CAST(f.N_Doc AS STRING), r'[^0-9]', '')
   ),
   -- LEFT JOIN con cobranza_mes_actual por Codigo_Asociado
@@ -192,21 +192,26 @@ const QUERY = `
       j.* 
     FROM join_fondos j
     LEFT JOIN peak-emitter-350713.FR_general.cobranza_mes_actual c
-      ON CAST(j.Codigo_Asociado AS STRING) = CAST(c.Codigo_Asociado AS STRING)
+      ON CAST(j.codigo_asociado_fondos AS STRING) = CAST(c.Codigo_Asociado AS STRING)
     WHERE c.Codigo_Asociado IS NULL
   ),
   ranked AS (
     SELECT
-      DNI as documento_identidad,
-      Frente as segmentacion,
-      Estrategia_ as Gestion,
-      telefono as celular,
-      nombre,
+      --DNI as documento_identidad,
+      N_Doc as documento_identidad,
+      --Frente as segmentacion,
+      Segmento as segmentacion,
+      --Estrategia_ as Gestion,
+      Estrategia as Gestion,
+      --telefono as celular,
+      Telefono as celular,
+      Nombre as nombre,
+      modelo,
       IFNULL(STRING_AGG(DISTINCT CAST(Cod_Bco AS STRING), ', '), '') AS code_pago,
-      ROW_NUMBER() OVER (PARTITION BY DNI ORDER BY DNI) as rn
+      ROW_NUMBER() OVER (PARTITION BY N_Doc ORDER BY N_Doc) as rn
     FROM excluidos
     GROUP BY
-      DNI, segmentacion, Gestion, telefono, nombre
+      N_Doc, segmentacion, Gestion, telefono, nombre, modelo
   )
   SELECT
     documento_identidad,
@@ -214,7 +219,8 @@ const QUERY = `
     Gestion,
     celular,
     nombre,
-    code_pago
+    code_pago,
+    modelo
   FROM ranked
   WHERE rn = 1;
 `;

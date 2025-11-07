@@ -55,7 +55,7 @@ export async function POST(request) {
         telefono: row.telefono,
         nombre: row.nombre,
         documento: row.DNI,
-        
+        modelo:row.modelo,
         // Información de gestión (LO IMPORTANTE)
         segmentacion: row.segmentacion,
         gestion: row.Gestion, // convencional o retadora
