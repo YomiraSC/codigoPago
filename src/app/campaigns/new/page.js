@@ -303,6 +303,7 @@ const applyFilters = async () => {
     { field: 'Gestion', headerName: 'Gestión', width: 120 },
     { field: 'code_pago', headerName: 'Código Pago', width: 180 },
     { field: 'modelo', headerName: 'Modelo', width: 180 },
+    { field: 'feccuota', headerName: 'Fecha de Cuota', width: 180 },
   ];
 // ---------------------------------------------------------------------------
 

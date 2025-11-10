@@ -118,11 +118,12 @@ export async function POST(req, context) {
         const clientesParaActualizar = [];
         
         for (const clientData of clients) {
-          const { nombre, celular, code_pago, documento_identidad, modelo } = clientData;
+          const { nombre, celular, code_pago, documento_identidad, modelo, feccuota } = clientData;
           const finalNombre = nombre || "Nombre desconocido";
           const finalCelular = celular ? "+51" + celular.toString().replace(/\s+/g, "") : null;
           const finalCodPago = code_pago && code_pago.trim() !== "" ? String(code_pago).slice(0, 50) : null;
-          const finalModelo = modelo || "";
+          const finalModelo = modelo || " ";
+          const finalFeccuota = feccuota || " ";
           if (!finalCelular) continue;
 
           let cliente = clientesMap.get(finalCelular) || (documento_identidad ? clientesMap.get(String(documento_identidad)) : undefined);
@@ -134,6 +135,7 @@ export async function POST(req, context) {
               celular: finalCelular,
               code_pago: finalCodPago,
               modelo: finalModelo,
+              feccuota: finalFeccuota
             });
           } else {
             // Cliente nuevo: agregar al array para createMany
@@ -145,6 +147,7 @@ export async function POST(req, context) {
               fecha_creacion: new Date(),
               code_pago: finalCodPago,
               modelo: finalModelo,
+              feccuota: finalFeccuota
             });
           }
         }

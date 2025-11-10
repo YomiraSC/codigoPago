@@ -207,11 +207,12 @@ const QUERY = `
       Telefono as celular,
       Nombre as nombre,
       modelo,
+      feccuota,
       IFNULL(STRING_AGG(DISTINCT CAST(Cod_Bco AS STRING), ', '), '') AS code_pago,
       ROW_NUMBER() OVER (PARTITION BY N_Doc ORDER BY N_Doc) as rn
     FROM excluidos
     GROUP BY
-      N_Doc, segmentacion, Gestion, telefono, nombre, modelo
+      N_Doc, segmentacion, Gestion, telefono, nombre, modelo, feccuota
   )
   SELECT
     documento_identidad,
@@ -220,7 +221,8 @@ const QUERY = `
     celular,
     nombre,
     code_pago,
-    modelo
+    modelo,
+    feccuota
   FROM ranked
   WHERE rn = 1;
 `;

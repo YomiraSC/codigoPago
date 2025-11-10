@@ -56,6 +56,7 @@ export async function POST(request) {
         nombre: row.nombre,
         documento: row.DNI,
         modelo:row.modelo,
+        feccuota:row.feccuota,
         // Información de gestión (LO IMPORTANTE)
         segmentacion: row.segmentacion,
         gestion: row.Gestion, // convencional o retadora
