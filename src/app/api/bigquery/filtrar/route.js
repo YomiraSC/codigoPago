@@ -177,54 +177,52 @@ const QUERY = `
     WHERE ${whereSQL}
   ),
   join_fondos AS (
-    SELECT
-      b.*,
-      f.Codigo_Asociado AS codigo_asociado_fondos,
-      REGEXP_REPLACE(TRIM(CAST(f.Cod_Bco AS STRING)), r',$', '') AS Cod_Bco
-    FROM base_filtrada b
-    LEFT JOIN peak-emitter-350713.FR_general.bd_fondos f
-      ON REGEXP_REPLACE(CAST(b.N_Doc AS STRING), r'[^0-9]', '') =
-         REGEXP_REPLACE(CAST(f.N_Doc AS STRING), r'[^0-9]', '')
-  ),
-  -- LEFT JOIN con cobranza_mes_actual por Codigo_Asociado
-  excluidos AS (
-    SELECT
-      j.* 
-    FROM join_fondos j
-    LEFT JOIN peak-emitter-350713.FR_general.cobranza_mes_actual c
-      ON CAST(j.codigo_asociado_fondos AS STRING) = CAST(c.Codigo_Asociado AS STRING)
-    WHERE c.Codigo_Asociado IS NULL
-  ),
-  ranked AS (
-    SELECT
-      --DNI as documento_identidad,
-      N_Doc as documento_identidad,
-      --Frente as segmentacion,
-      Segmento as segmentacion,
-      --Estrategia_ as Gestion,
-      Estrategia as Gestion,
-      --telefono as celular,
-      Telefono as celular,
-      Nombre as nombre,
-      modelo,
-      feccuota,
-      IFNULL(STRING_AGG(DISTINCT CAST(Cod_Bco AS STRING), ', '), '') AS code_pago,
-      ROW_NUMBER() OVER (PARTITION BY N_Doc ORDER BY N_Doc) as rn
-    FROM excluidos
-    GROUP BY
-      N_Doc, segmentacion, Gestion, telefono, nombre, modelo, feccuota
-  )
   SELECT
-    documento_identidad,
-    segmentacion,
-    Gestion,
-    celular,
+    b.*,
+    f.Codigo_Asociado,
+    REGEXP_REPLACE(TRIM(CAST(f.Cod_Bco AS STRING)), r',$', '') AS Cod_Bco,
+    -- Traemos los estados desde bd_fondos
+    f.Estado_Asociado,
+    f.Estado_Adjudicado
+  FROM base_filtrada b
+  LEFT JOIN peak-emitter-350713.FR_general.bd_fondos f
+    ON REGEXP_REPLACE(CAST(b.DNI AS STRING), r'[^0-9]', '') =
+       REGEXP_REPLACE(CAST(f.N_Doc AS STRING), r'[^0-9]', '')
+),
+-- LEFT JOIN con cobranza_mes_actual por Codigo_Asociado
+excluidos AS (
+  SELECT
+    j.*
+  FROM join_fondos j
+  LEFT JOIN peak-emitter-350713.FR_general.cobranza_mes_actual c
+    ON CAST(j.Codigo_Asociado AS STRING) = CAST(c.Codigo_Asociado AS STRING)
+  WHERE 
+    c.Codigo_Asociado IS NULL           -- sigue tu lógica original
+    AND j.Estado_Asociado = 'ACTIVO'    -- solo activos
+    AND j.Estado_Adjudicado = 'No Adjudicado'  -- solo no adjudicados
+),
+ranked AS (
+  SELECT
+    DNI AS documento_identidad,
+    Frente AS segmentacion,
+    Estrategia_ AS Gestion,
+    telefono AS celular,
     nombre,
-    code_pago,
-    modelo,
-    feccuota
-  FROM ranked
-  WHERE rn = 1;
+    IFNULL(STRING_AGG(DISTINCT CAST(Cod_Bco AS STRING), ', '), '') AS code_pago,
+    ROW_NUMBER() OVER (PARTITION BY DNI ORDER BY DNI) AS rn
+  FROM excluidos
+  GROUP BY
+    DNI, segmentacion, Gestion, telefono, nombre
+)
+SELECT
+  documento_identidad,
+  segmentacion,
+  Gestion,
+  celular,
+  nombre,
+  code_pago
+FROM ranked
+WHERE rn = 1;
 `;
     console.log('Consulta SQL:', QUERY);
 
