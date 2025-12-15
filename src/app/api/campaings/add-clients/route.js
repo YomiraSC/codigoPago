@@ -121,7 +121,7 @@ export async function POST(req, context) {
           const { nombre, celular, code_pago, documento_identidad, modelo, feccuota } = clientData;
           const finalNombre = nombre || "Nombre desconocido";
           const finalCelular = celular ? "+51" + celular.toString().replace(/\s+/g, "") : null;
-          const finalCodPago = code_pago && code_pago.trim() !== "" ? String(code_pago).slice(0, 50) : " ";
+          const finalCodPago = code_pago && code_pago.trim() !== "" ? String(code_pago).slice(0, 50) : null;
           const finalModelo = modelo || " ";
           const finalFeccuota = feccuota || " ";
           if (!finalCelular) continue;
