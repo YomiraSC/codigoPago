@@ -15,7 +15,7 @@ import {
   Group, Message, CheckCircle, Error, Info, Warning,
   Phone, Person, Business, DateRange, Assessment
 } from "@mui/icons-material";
-import { addClientesACampanha, getClientesPorGestor, getGestores } from "../../../../services/campaignService";
+import { getGestores } from "../../../../services/campaignService";
 import axiosInstance from "../../../../services/api";
 import ContactoStats from "@/app/components/ContactoStats";
 import CampaignStatsCard from "@/app/components/CampaignStatsCard";
@@ -101,12 +101,7 @@ const CampaignDetailPage = () => {
     fetchCampaignDetail();
     setLoadingUpload(false);
   };
-  const handleChangeGestor = async (value) => {
-    setSelectedGestor(value);
-    const clientes = await getClientesPorGestor(value);
-    setFilteredClients(clientes);
-    setSelectedClientIds([]); // resetear selección
-  };
+ 
   function dividirEnLotes(array, tamañoLote) {
     const lotes = [];
     for (let i = 0; i < array.length; i += tamañoLote) {

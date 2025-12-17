@@ -125,9 +125,13 @@ export async function POST(req, context) {
           const finalModelo = modelo || " ";
           const finalFeccuota = feccuota || " ";
           if (!finalCelular) continue;
+          console.log("📞 Buscando cliente con celular:", finalCelular);
+          const cliente = todosClientes.get(finalCelular);
 
-          let cliente = clientesMap.get(finalCelular) || (documento_identidad ? clientesMap.get(String(documento_identidad)) : undefined);
-
+if (!cliente) {
+  console.log("❌ NO encontrado en Map:", finalCelular);
+  continue;
+}
           if (cliente) {
             // Cliente ya existe: preparar para actualización masiva
             clientesParaActualizar.push({
@@ -251,7 +255,11 @@ export async function POST(req, context) {
         // OPTIMIZACIÓN 5: Preparar asociaciones y operaciones Firestore
         const fecha = new Date();
         const firestoreBatch = db ? db.batch() : null;
-
+        console.log("🔍 Total clientes en todosClientes:", todosClientes.size);
+console.log(
+  "🔍 Ejemplo keys todosClientes:",
+  Array.from(todosClientes.keys()).slice(0, 5)
+);
         for (const clientData of clients) {
           const { celular } = clientData;
           const finalCelular = celular ? "+51" + celular.toString().replace(/\s+/g, "") : null;
@@ -259,7 +267,9 @@ export async function POST(req, context) {
           if (!finalCelular) continue;
 
           const cliente = todosClientes.get(finalCelular);
+
           if (!cliente) continue;
+
           console.log("Asociando cliente ID:", cliente.cliente_id, "con campaña ID:", campanha.campanha_id);
           // Preparar asociación
           asociacionesParaCrear.push({

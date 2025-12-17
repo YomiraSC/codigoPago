@@ -11,7 +11,7 @@ const normalizeType = (t = 'STRING') => ({
 }[t.toUpperCase()] || 'STRING');
 
 /* ── 2. Cache de esquema por tabla ───────────────────────── */
-const schemaCache = new Map();         // { 'proyecto.dataset.tabla' → { col:type,… } }
+const schemaCache = new Map();
 
 async function getSchema(project, dataset, table) {
   const key = `${project}.${dataset}.${table}`;
@@ -41,203 +41,169 @@ export async function POST(req) {
     if (!table || !Array.isArray(filters))
       return new Response('Payload inválido', { status: 400 });
 
-    /* Ajusta aquí si cambian proyecto/dataset */
     const project = 'peak-emitter-350713';
     const dataset = 'BOT_codpago';
 
     const schema = await getSchema(project, dataset, table);
 
     /* 3.1 WHERE y params primitivos */
-    const params = {};          // { val0: 'ALTA', val1: 'convencional', val2: 0.72 }
+    const params = {};
     const whereParts = [];
 
     filters.forEach((f, idx) => {
-      const p       = `val${idx}`;
+      const p = `val${idx}`;
       const colName = f.column;
       const colType = schema[colName] || 'STRING';
-
-      // Si el valor es null o vacío, se pone `TRUE` en el WHERE (no afecta el filtro)
       let val = f.value;
+
       if (val == null || val === '' || val === 'Todos') {
-        whereParts.push(`1=1`);  // Siempre verdadero, se omite este filtro
-        return; // No agregamos más lógica para este filtro
+        return;
       }
 
-      // Si es fecha, castea y filtra solo por la parte de la fecha
-      if (colName === 'DATETIME' || colType === 'DATE') {
+      console.log(`Procesando filtro - Columna: ${colName}, Tipo: ${colType}, Valor: ${val}`);
 
-        console.log('Es fecha:', colName, 'Valor:', val);
-        // Extrae solo la fecha (YYYY-MM-DD)
+      // 👇 CASO ESPECIAL: mes_gestion (sin importar el tipo detectado)
+      if (colName === 'mes_gestion') {
+        const fechaCompleta = `${val}-01`;
+        params[p] = fechaCompleta;
+        whereParts.push(
+          `DATE_TRUNC(CAST(\`${colName}\` AS DATE), MONTH) = DATE_TRUNC(CAST(@${p} AS DATE), MONTH)`
+        );
+        return;
+      }
+
+      // Otros campos DATE o DATETIME
+      if (colType === 'DATE' || colType === 'DATETIME') {
         const fechaSolo = val.split('T')[0];
         params[p] = fechaSolo;
         whereParts.push(`DATE(\`${colName}\`) = @${p}`);
         return;
       }
 
-      // convierte a número si la columna es numérica
-      if (colType === 'INT64')   val = Number.parseInt(val, 10);
+      // Convertir a número si es necesario
+      if (colType === 'INT64') val = Number.parseInt(val, 10);
       if (colType === 'FLOAT64') val = Number.parseFloat(val);
-      console.log(`Columna: ${colName}, Tipo: ${colType}, Valor: ${val}`);
-      params[p] = val;                          // se guarda como PRIMITIVO
+      params[p] = val;
       whereParts.push(`\`${colName}\` = @${p}`);
     });
-    
-    const whereSQL = whereParts.join(' AND ') || '1=1';
+
+    const whereSQL = whereParts.length > 0 ? whereParts.join(' AND ') : '1=1';
     console.log('WHERE SQL:', whereSQL);
-    /* 3.2 columnas extra con alias legibles */
-    const ALIAS = { segmentacion: 'segmento', cluster: 'cluster', estrategia: 'estrategia' };
-    const selectExtra = filters
-      .map(f => `\`${f.column}\` AS ${ALIAS[f.type] || f.column}`)
-      .join(', ');
+    console.log('Params:', params);
+    console.log('📊 PARAMS FINALES:', JSON.stringify(params, null, 2));
 
-    /* 3.3 consulta final con JOIN */
-//     const QUERY = `
-//    WITH cte_M1 AS (
-//     SELECT 
-//       base.Codigo_Asociado,
-//       base.segmentacion,
-//       base.Cluster,
-//       base.gestion,
-//       fondos.Cta_Act_Pag,
-//       fondos.Telf_SMS,
-//       fondos.E_mail,
-//       fondos.Linea
-//     FROM   \`${project}.${dataset}.${table}\` AS base
-//     LEFT JOIN peak-emitter-350713.FR_general.bd_fondos AS fondos
-//       ON base.Codigo_Asociado = fondos.Codigo_Asociado
-//   ),
-//   ranked AS (
-//     SELECT 
-//       M1.Codigo_Asociado,
-//       M1.segmentacion,
-//       M1.Linea,
-//       envios.Email AS email,
-//       M1.Cta_Act_Pag,
-//       envios.TelfSMS AS telefono,
-//       envios.Primer_Nombre AS nombre,
-//       envios.Cod_Banco AS codpago,
-//       envios.Fec_Venc_Cuota AS feccuota,
-//       envios.Modelo AS modelo,
-//       FORMAT('%.2f', envios.Monto) AS monto,
-//       ROW_NUMBER() OVER (PARTITION BY envios.TelfSMS ORDER BY envios.N_Doc) AS row_num  -- Asigna un número a cada fila por TelfSMS
-//     FROM cte_M1 AS M1
-//     INNER JOIN peak-emitter-350713.FR_general.envios_cobranzas_m0 AS envios
-//       ON M1.Telf_SMS = envios.TelfSMS
-//     WHERE   
-//       ${whereSQL}
-//   )
-//   SELECT 
-//     Cta_Act_Pag,
-//     Codigo_Asociado,
-//     segmentacion,
-//     email,
-//     telefono,
-//     nombre,
-//     codpago,
-//     feccuota,
-//     modelo,
-//     monto,
-//     Linea
-//   FROM ranked
-//   WHERE row_num = 1;  -- Selecciona solo la primera fila de cada grupo de TelfSMS
-// `;
+    /* 3.2 Consulta final con exclusión de cobranzas */
+    const QUERY = `
+WITH base_filtrada AS (
+  SELECT *
+  FROM \`${project}.${dataset}.gestion_mensual\`
+  WHERE ${whereSQL}
+),
 
-// const QUERY = `
-//    WITH base_filtrada AS (
-//   SELECT *
-//   FROM \`${project}.${dataset}.${table}\`
-//   WHERE ${whereSQL}
-// ),
-// join_fondos AS (
-//   SELECT
-//     b.*,
-//     f.Cod_Bco
-//   FROM base_filtrada b
-//   LEFT JOIN \`peak-emitter-350713.FR_general.bd_fondos\` f
-//     ON REGEXP_REPLACE(CAST(b.DNI AS STRING), r'[^0-9]', '')  -- limpia DNI por si acaso
-//        = REGEXP_REPLACE(CAST(f.N_Doc AS STRING), r'[^0-9]', '')  -- quita coma final y no dígitos
-// )
-// SELECT
-//   b.DNI,
-//   b.segmentacion,
-//   b.Gestion,
-//   b.telefono,
-//   b.nombre,
-//   IFNULL(STRING_AGG(DISTINCT CAST(Cod_Bco AS STRING), ', '), '') AS codigos_pago
-// FROM join_fondos b
-// GROUP BY
-//   b.DNI, b.segmentacion, b.Gestion,b.telefono, b.nombre;
-
-// `;
-
-const QUERY = `
-   WITH base_filtrada AS (
-    SELECT *
-    FROM \`${project}.${dataset}.${table}\`
-    WHERE ${whereSQL}
-  ),
-  join_fondos AS (
-    SELECT
-      b.*,
-      f.Codigo_Asociado AS codigo_asociado_fondos,
-      REGEXP_REPLACE(TRIM(CAST(f.Cod_Bco AS STRING)), r',$', '') AS Cod_Bco
-    FROM base_filtrada b
-    LEFT JOIN peak-emitter-350713.FR_general.bd_fondos f
-      ON REGEXP_REPLACE(CAST(b.N_Doc AS STRING), r'[^0-9]', '') =
-         REGEXP_REPLACE(CAST(f.N_Doc AS STRING), r'[^0-9]', '')
-  ),
-  -- LEFT JOIN con cobranza_mes_actual por Codigo_Asociado
-  excluidos AS (
-    SELECT
-      j.* 
-    FROM join_fondos j
-    LEFT JOIN peak-emitter-350713.FR_general.cobranza_mes_actual c
-      ON CAST(j.codigo_asociado_fondos AS STRING) = CAST(c.Codigo_Asociado AS STRING)
-    WHERE c.Codigo_Asociado IS NULL
-  ),
-  ranked AS (
-    SELECT
-      --DNI as documento_identidad,
-      N_Doc as documento_identidad,
-      --Frente as segmentacion,
-      Segmento as segmentacion,
-      --Estrategia_ as Gestion,
-      Estrategia as Gestion,
-      --telefono as celular,
-      Telefono as celular,
-      Nombre as nombre,
-      modelo,
-      feccuota,
-      IFNULL(STRING_AGG(DISTINCT CAST(Cod_Bco AS STRING), ', '), '') AS code_pago,
-      ROW_NUMBER() OVER (PARTITION BY N_Doc ORDER BY N_Doc) as rn
-    FROM excluidos
-    GROUP BY
-      N_Doc, segmentacion, Gestion, telefono, nombre, modelo, feccuota
-  )
+join_fondos AS (
   SELECT
-    documento_identidad,
-    segmentacion,
-    Gestion,
-    celular,
+    b.dni,
+    b.nombre,
+    b.telefono,
+    b.estrategia,
+    b.categoria_urgencia,
+    b.score_urgencia,
+    b.mes_gestion,
+    b.estado,
+    b.prioridad,
+    f.Codigo_Asociado,
+    REGEXP_REPLACE(TRIM(CAST(f.Cod_Bco AS STRING)), r',$', '') AS Cod_Bco,
+    f.Pago_cuota,
+    f.Mora,
+    f.Estado_Asociado,
+    f.Estado_Adjudicado
+  FROM base_filtrada b
+  INNER JOIN  \`${project}.FR_general.bd_fondos\` f
+    ON REGEXP_REPLACE(CAST(b.dni AS STRING), r'[^0-9]', '') =
+       REGEXP_REPLACE(CAST(f.N_Doc AS STRING), r'[^0-9]', '')
+),
+
+-- 🔑 Solo contratos pendientes
+contratos_pendientes AS (
+  SELECT *
+  FROM join_fondos
+  WHERE
+    UPPER(TRIM(CAST(Pago_cuota AS STRING))) = 'NO'
+    AND CAST(Mora AS INT64) = 0
+    AND UPPER(TRIM(Estado_Asociado)) = 'ACTIVO'
+    AND UPPER(TRIM(Estado_Adjudicado)) = 'NO ADJUDICADO'
+),
+
+-- 🚫 EXCLUSIÓN: LEFT JOIN con cobranzas para eliminar clientes en cobranza_mes_actual
+sin_cobranzas AS (
+  SELECT
+    cp.*
+  FROM contratos_pendientes cp
+  LEFT JOIN \`${project}.FR_general.cobranza_mes_actual\` c
+    ON CAST(cp.Codigo_Asociado AS STRING) = CAST(c.Codigo_Asociado AS STRING)
+  WHERE c.Codigo_Asociado IS NULL  -- Solo los que NO están en cobranzas
+),
+
+ranked AS (
+  SELECT
+    dni,
     nombre,
-    code_pago,
-    modelo,
-    feccuota
-  FROM ranked
-  WHERE rn = 1;
-`;
+    telefono,
+    estrategia,
+    categoria_urgencia,
+    score_urgencia,
+    CAST(mes_gestion AS STRING) AS mes_gestion,
+    estado,
+    prioridad,
+    STRING_AGG(DISTINCT Cod_Bco, ', ' ORDER BY Cod_Bco) AS codigos_pago,
+    COUNT(DISTINCT Cod_Bco) AS total_contratos,
+    ROW_NUMBER() OVER (
+      PARTITION BY dni
+      ORDER BY prioridad DESC, score_urgencia DESC
+    ) AS rn
+  FROM sin_cobranzas
+  GROUP BY
+    dni,
+    nombre,
+    telefono,
+    estrategia,
+    categoria_urgencia,
+    score_urgencia,
+    mes_gestion,
+    estado,
+    prioridad
+)
+
+SELECT
+  dni,
+  nombre,
+  telefono,
+  estrategia,
+  categoria_urgencia,
+  score_urgencia,
+  mes_gestion,
+  estado,
+  prioridad,
+  codigos_pago,
+  total_contratos
+FROM ranked
+WHERE rn = 1
+ORDER BY prioridad DESC, score_urgencia DESC;
+    `;
+
     console.log('Consulta SQL:', QUERY);
 
-    /* 3.4 ejecutar */
+    /* 3.3 ejecutar */
     const [rows] = await bq.query({
       query: QUERY,
       params,
-      parameterMode: 'named',
+      parameterMode: 'named',   
     });
 
-    return Response.json({ rows });         // 200 OK
+    console.log(`Filas obtenidas: ${rows.length}`);
+    return Response.json({ rows });
   } catch (err) {
     console.error('Error en /api/filtrar:', err);
-    return new Response('Error ejecutando consulta', { status: 500 });
+    return new Response(`Error ejecutando consulta: ${err.message}`, { status: 500 });
   }
 }
