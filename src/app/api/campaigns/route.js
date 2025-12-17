@@ -102,10 +102,17 @@ export async function PUT(req) {
         });
 
         if (!campanha) return NextResponse.json({ error: "Campaña no encontrada" }, { status: 404 });
-
+        const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
+        
+        if (!twilioPhone) {
+            console.error("❌ TWILIO_PHONE_NUMBER no está definido en .env.local");
+            return NextResponse.json({ 
+                error: "Configuración de Twilio incompleta" 
+            }, { status: 500 });
+        }
         for (const clienteCampanha of campanha.cliente_campanha) {
             await client.messages.create({
-                from: `whatsapp:${process.env.TWILIO_PHONE_NUMBER}`,
+                from: `whatsapp:${twilioPhone}`,
                 to: `whatsapp:${clienteCampanha.cliente.celular}`,
                 body: campanha.mensaje_cliente,
             });

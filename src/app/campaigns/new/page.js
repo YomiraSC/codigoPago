@@ -43,6 +43,7 @@ export default function CampaignPage() {
   const [templates, setTemplates] = useState([]); // Para almacenar las plantillas obtenidas
   const [loadingColumns, setLoadingColumns] = useState(false);  // Estado para saber si estamos cargando las columnas
   const [clients, setClients] = useState([]); 
+  const [appliedFilters, setAppliedFilters] = useState([]); // Guardar filtros aplicados
   const [selectedColumns, setSelectedColumns] = useState({
   segmentacion: 'Segmento',
   estrategia: 'Estrategia'
@@ -126,6 +127,7 @@ const handleSubmit = async () => {
     fecha_fin: sendTime,
     clients: clients,  // Aquí envías toda la información de los clientes
     variableMappings,
+    filters: appliedFilters, // Enviar los filtros aplicados
   };
 
   try {
@@ -277,6 +279,7 @@ const applyFilters = async () => {
     const { data } = await axiosInstance.post('/bigquery/filtrar', payload);
     console.log('Datos filtrados →', data);
     setClients(data.rows); // Guarda los datos filtrados en el estado
+    setAppliedFilters(filters); // Guarda los filtros aplicados
     console.log('Datos filtrados:', data);
     // TODO: guarda "data" en estado o muéstralo en pantalla
   } catch (error) {

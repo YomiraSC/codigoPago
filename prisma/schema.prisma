@@ -36,6 +36,7 @@ model campanha {
   tipo              String              @default("in") @db.VarChar(10)
   template_id       Int?
   variable_mappings Json?               @default("{}") @db.Json
+  filtros_aplicados Json?               @default("{}") @db.Json
   template          template?           @relation(fields: [template_id], references: [id], map: "fk_campanha_template")
   campanha_temporal campanha_temporal[]
   cliente_campanha  cliente_campanha[]

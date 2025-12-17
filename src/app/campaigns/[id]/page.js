@@ -15,10 +15,11 @@ import {
   Group, Message, CheckCircle, Error, Info, Warning,
   Phone, Person, Business, DateRange, Assessment
 } from "@mui/icons-material";
-import { addClientesACampanha, getClientesPorGestor, getGestores } from "../../../../services/campaignService";
+import {getGestores } from "../../../../services/campaignService";
 import axiosInstance from "../../../../services/api";
 import ContactoStats from "@/app/components/ContactoStats";
 import CampaignStatsCard from "@/app/components/CampaignStatsCard";
+
 const CampaignDetailPage = () => {
   const params = useParams();
   const router = useRouter();
@@ -52,19 +53,34 @@ const CampaignDetailPage = () => {
     sendingInProgress,
   } = useCampaignDetail(campaignId);
 
+  // 🔧 CORRECCIÓN 1: Cargar gestores al montar el componente
   useEffect(() => {
-    getGestores().then(setGestores);
-    console.log("GESTORES:", gestores);
-
+    const loadGestores = async () => {
+      try {
+        const gestoresData = await getGestores();
+        setGestores(gestoresData);
+        console.log("GESTORES cargados:", gestoresData);
+      } catch (error) {
+        console.error("Error al cargar gestores:", error);
+      }
+    };
+    loadGestores();
   }, []);
 
+  // 🔧 CORRECCIÓN 2: Cargar detalles de campaña cuando cambia el ID
   useEffect(() => {
-
     if (campaignId) {
+      console.log("Cargando campaña con ID:", campaignId);
       fetchCampaignDetail();
     }
-    console.log("camapla", campaign);
-  }, [campaignId]);
+  }, [campaignId, fetchCampaignDetail]);
+
+  // 🔧 CORRECCIÓN 3: Log para depuración cuando cambia la campaña
+  useEffect(() => {
+    console.log("Datos de campaña actualizados:", campaign);
+    console.log("Clientes de campaña:", campaignClients);
+    console.log("Total de clientes:", pagination.total);
+  }, [campaign, campaignClients, pagination]);
 
   const handleFileUpload = (event) => {
     const uploadedFile = event.target.files[0];
@@ -94,19 +110,37 @@ const CampaignDetailPage = () => {
   const handleSaveClients = async () => {
     if (!file) return;
     setLoadingUpload(true);
-    await handleUploadClients(file);
-    setOpenModal(false);
-    setFile(null);
-    setClients([]);
-    fetchCampaignDetail();
-    setLoadingUpload(false);
+    try {
+      await handleUploadClients(file);
+      setOpenModal(false);
+      setFile(null);
+      setClients([]);
+      await fetchCampaignDetail();
+    } catch (error) {
+      console.error("Error al subir clientes:", error);
+    } finally {
+      setLoadingUpload(false);
+    }
   };
-  const handleChangeGestor = async (value) => {
-    setSelectedGestor(value);
-    const clientes = await getClientesPorGestor(value);
-    setFilteredClients(clientes);
-    setSelectedClientIds([]); // resetear selección
+
+  // 🔧 CORRECCIÓN 4: Función para manejar cambio de gestor
+  const handleChangeGestor = async (gestorSeleccionado) => {
+    setSelectedGestor(gestorSeleccionado);
+    if (!gestorSeleccionado) {
+      setFilteredClients([]);
+      return;
+    }
+
+    try {
+      // Aquí debes hacer la petición para obtener los clientes del gestor
+      const response = await axiosInstance.get(`/clients/by-gestor/${gestorSeleccionado}`);
+      setFilteredClients(response.data || []);
+    } catch (error) {
+      console.error("Error al cargar clientes del gestor:", error);
+      setFilteredClients([]);
+    }
   };
+
   function dividirEnLotes(array, tamañoLote) {
     const lotes = [];
     for (let i = 0; i < array.length; i += tamañoLote) {
@@ -115,7 +149,8 @@ const CampaignDetailPage = () => {
     return lotes;
   }
 
-
+  // 🔧 CORRECCIÓN 5: Verificación de datos antes de renderizar
+  const isDataLoaded = campaign && Object.keys(campaign).length > 0;
 
   return (
     <Fade in timeout={800}>
@@ -143,6 +178,20 @@ const CampaignDetailPage = () => {
                 {error}
               </Alert>
             </Fade>
+          ) : !isDataLoaded ? (
+            <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" height="60vh">
+              <Warning sx={{ fontSize: '4rem', color: '#ff9800', mb: 2 }} />
+              <Typography variant="h6" color="#ff9800">
+                No se encontraron datos de la campaña
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={() => router.push("/campaigns")}
+                sx={{ mt: 3, background: 'linear-gradient(135deg, #007391 0%, #005c6b 100%)' }}
+              >
+                Volver a Campañas
+              </Button>
+            </Box>
           ) : (
             <>
               {/* HEADER PRINCIPAL CON GRADIENTE */}
@@ -194,7 +243,7 @@ const CampaignDetailPage = () => {
                             mb: 1
                           }}
                         >
-                          {campaign?.nombre_campanha}
+                          {campaign?.nombre_campanha || 'Campaña sin nombre'}
                         </Typography>
                         <Typography 
                           variant="h6" 
@@ -313,7 +362,7 @@ const CampaignDetailPage = () => {
                                   NÚMERO DE CLIENTES
                                 </Typography>
                                 <Typography variant="h6" sx={{ fontWeight: 700, color: '#007391' }}>
-                                  {pagination.total.toLocaleString()}
+                                  {(pagination?.total || 0).toLocaleString()}
                                 </Typography>
                               </Box>
                             </Box>
@@ -383,7 +432,7 @@ const CampaignDetailPage = () => {
                         >
                           <Assessment sx={{ fontSize: '3rem', mb: 1, opacity: 0.8 }} />
                           <Typography variant="h4" fontWeight="bold">
-                            {pagination.total}
+                            {pagination?.total || 0}
                           </Typography>
                           <Typography variant="body2" sx={{ opacity: 0.9 }}>
                             Total de Contactos
@@ -489,16 +538,6 @@ const CampaignDetailPage = () => {
                 </Box>
               </Fade>
 
-              {/* 🔹 ESTADÍSTICAS DE CAMPAÑA */}
-              {/*<Fade in timeout={1600}>
-                <Box mb={4}>
-                  <CampaignStatsCard 
-                    campaignStats={campaignStats} 
-                    sendingInProgress={sendingInProgress} 
-                  />
-                </Box>
-              </Fade>*/}
-
               {/* 🔹 TABLA DE CLIENTES CON DISEÑO MEJORADO */}
               <Fade in timeout={1800}>
                 <Paper 
@@ -524,7 +563,7 @@ const CampaignDetailPage = () => {
                   >
                     <Group />
                     <Typography variant="h5" fontWeight="bold">
-                      Lista de Clientes ({pagination.total})
+                      Lista de Clientes ({pagination?.total || 0})
                     </Typography>
                   </Box>
                   
@@ -532,8 +571,8 @@ const CampaignDetailPage = () => {
                     <CustomDataGrid
                       pagination={pagination}
                       setPagination={setPagination}
-                      rows={campaignClients}
-                      totalRows={pagination.total}
+                      rows={campaignClients || []}
+                      totalRows={pagination?.total || 0}
                       columns={[
                         { 
                           field: "id", 
@@ -724,7 +763,7 @@ const CampaignDetailPage = () => {
                       }}
                     >
                       <option value="">Selecciona un gestor</option>
-                      {gestores.map((g, index) => (
+                     {gestores.map((g, index) => (
                         <option key={index} value={g}>{g}</option>
                       ))}
                     </select>
@@ -904,7 +943,7 @@ const CampaignDetailPage = () => {
             </>
           )}
           
-          {campaignId && (
+          {campaignId && isDataLoaded && (
             <Fade in timeout={2000}>
               <Box mt={4}>
                 <ContactoStats campaignId={campaignId} />
