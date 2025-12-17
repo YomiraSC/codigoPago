@@ -11,14 +11,23 @@ export async function GET(req) {
         const page = parseInt(searchParams.get("page") || "1");
         const pageSize = parseInt(searchParams.get("pageSize") || "10");
 
+        // 🔹 Calcular skip correctamente
+        const skip = (page - 1) * pageSize;
+
         // 🔹 Obtener campañas con paginación
         const campaigns = await prisma.campanha.findMany({
-            skip: (page - 1) * pageSize,
+            skip: skip,
             take: pageSize,
-            include: { template: true },
+            include: { 
+                template: true,
+                cliente_campanha: {
+                    include: {
+                        cliente: true
+                    }
+                }
+            },
             orderBy: { fecha_creacion: "desc" }
         });
-        console.log("ZZXFA",campaigns);
 
         // 🔹 Validar si `campaigns` es `null` o `undefined`
         if (!campaigns) {
@@ -28,13 +37,7 @@ export async function GET(req) {
         // 🔹 Contar total de campañas
         const totalCount = await prisma.campanha.count();
 
-        return NextResponse.json({
-            campaigns: campaigns.map(campaign => ({
-                ...campaign,
-                fecha_creacion: campaign.fecha_creacion.toISOString().split("T")[0] // Extrae solo la fecha
-            })),
-            totalCount
-        });
+        return NextResponse.json({ campaigns, totalCount });
     } catch (error) {
         console.error("Error al obtener campañas:", error);
         return NextResponse.json({ error: "Error al obtener campañas" }, { status: 500 });
@@ -47,8 +50,7 @@ export async function POST(req) {
         const { nombre_campanha, descripcion, template_id, fecha_fin } = await req.json();
         console.log("Campaña",nombre_campanha,descripcion,template_id,fecha_fin);
         const campanha = await prisma.campanha.create({
-            data: { nombre_campanha, descripcion, template_id : null, fecha_fin: new Date(fecha_fin) , variable_mappings: { "1": "nombre" },
-        estado_campanha: "Activo" },
+            data: { nombre_campanha, descripcion, template_id : null, fecha_fin: new Date(fecha_fin) },
         });
         
         return NextResponse.json({ message: "Campaña creada con éxito", campanha });

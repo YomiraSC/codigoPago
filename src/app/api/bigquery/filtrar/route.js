@@ -53,7 +53,7 @@ export async function POST(req) {
 
     filters.forEach((f, idx) => {
       const p       = `val${idx}`;
-      const colName = f.column || f.field || f.type;
+      const colName = f.column;
       const colType = schema[colName] || 'STRING';
 
       // Si el valor es null o vacío, se pone `TRUE` en el WHERE (no afecta el filtro)
@@ -64,8 +64,10 @@ export async function POST(req) {
       }
 
       // Si es fecha, castea y filtra solo por la parte de la fecha
-      if (colType === 'DATETIME' || colType === 'DATE') {
+      if (colName === 'DATETIME' || colType === 'DATE') {
+
         console.log('Es fecha:', colName, 'Valor:', val);
+        // Extrae solo la fecha (YYYY-MM-DD)
         const fechaSolo = val.split('T')[0];
         params[p] = fechaSolo;
         whereParts.push(`DATE(\`${colName}\`) = @${p}`);
@@ -177,14 +179,14 @@ const QUERY = `
   join_fondos AS (
   SELECT
     b.*,
-    f.Codigo_Asociado AS Codigo_Asociado_fondos,
+    f.Codigo_Asociado,
     REGEXP_REPLACE(TRIM(CAST(f.Cod_Bco AS STRING)), r',$', '') AS Cod_Bco,
     -- Traemos los estados desde bd_fondos
     f.Estado_Asociado,
     f.Estado_Adjudicado
   FROM base_filtrada b
   LEFT JOIN peak-emitter-350713.FR_general.bd_fondos f
-    ON REGEXP_REPLACE(CAST(b.documento_identidad AS STRING), r'[^0-9]', '') =
+    ON REGEXP_REPLACE(CAST(b.DNI AS STRING), r'[^0-9]', '') =
        REGEXP_REPLACE(CAST(f.N_Doc AS STRING), r'[^0-9]', '')
 ),
 -- LEFT JOIN con cobranza_mes_actual por Codigo_Asociado
@@ -193,7 +195,7 @@ excluidos AS (
     j.*
   FROM join_fondos j
   LEFT JOIN peak-emitter-350713.FR_general.cobranza_mes_actual c
-    ON CAST(j.Codigo_Asociado_fondos AS STRING) = CAST(c.Codigo_Asociado AS STRING)
+    ON CAST(j.Codigo_Asociado AS STRING) = CAST(c.Codigo_Asociado AS STRING)
   WHERE 
     c.Codigo_Asociado IS NULL           -- sigue tu lógica original
     AND j.Estado_Asociado = 'ACTIVO'    -- solo activos
@@ -201,19 +203,19 @@ excluidos AS (
 ),
 ranked AS (
   SELECT
-    documento_identidad,
-    segmentacion,
-    Gestion,
-    celular AS celular,
-    nombre AS Nombre,
-    IFNULL(STRING_AGG(DISTINCT CAST(code_pago AS STRING), ', '), '') AS code_pago,
-    ROW_NUMBER() OVER (PARTITION BY documento_identidad ORDER BY documento_identidad) AS rn
+    DNI AS documento_identidad,
+    Frente AS segmentacion,
+    Estrategia_ AS Gestion,
+    telefono AS celular,
+    nombre,
+    IFNULL(STRING_AGG(DISTINCT CAST(Cod_Bco AS STRING), ', '), '') AS code_pago,
+    ROW_NUMBER() OVER (PARTITION BY DNI ORDER BY DNI) AS rn
   FROM excluidos
   GROUP BY
-    documento_identidad, segmentacion, Gestion, celular, Nombre
+    DNI, segmentacion, Gestion, telefono, nombre
 )
 SELECT
-  documento_identidad ,
+  documento_identidad,
   segmentacion,
   Gestion,
   celular,
