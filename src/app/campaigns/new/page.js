@@ -158,40 +158,34 @@ export default function CampaignPage() {
      APLICAR FILTROS
   ──────────────────────────── */
   const applyFilters = async () => {
-    setLoading(true);
+  if (loading) return;
 
+  console.log("👉 applyFilters ejecutado");
+  setLoading(true);
+
+  try {
     const payload = {
       table: "base_filtrada",
       filters: [
-        { 
-          column: "estrategia", 
-          value: filters.estrategia || "" 
-        },
-        { 
-          column: "categoria_urgencia", 
-          value: filters.categoria_urgencia || "" 
-        },
-        { 
-          column: "mes_gestion", 
-          value: filters.mes_gestion || "" 
-        },
+        { column: "estrategia", value: filters.estrategia || "" },
+        { column: "categoria_urgencia", value: filters.categoria_urgencia || "" },
+        { column: "mes_gestion", value: filters.mes_gestion || "" },
       ],
     };
 
     console.log("Enviando payload:", payload);
 
-    try {
-      const { data } = await axiosInstance.post("/bigquery/filtrar", payload);
-      setClients(data.rows || []);
-      setTotalClients(data.rows?.length || 0);
-      console.log(`Se obtuvieron ${data.rows?.length || 0} registros`);
-    } catch (error) {
-      console.error("Error al filtrar:", error);
-      alert("Error al aplicar filtros: " + (error.response?.data || error.message));
-    } finally {
-      setLoading(false);
-    }
-  };
+    const { data } = await axiosInstance.post("/bigquery/filtrar", payload);
+    setClients(data.rows || []);
+    setTotalClients(data.rows?.length || 0);
+  } catch (error) {
+    console.error("Error al filtrar:", error);
+    alert("Error al aplicar filtros");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   /* ────────────────────────────
      LIMPIAR FILTROS
@@ -415,7 +409,7 @@ export default function CampaignPage() {
           <Button 
             variant="contained" 
             onClick={applyFilters}
-            disabled={loading}
+            disabled={false}
             sx={{ 
               bgcolor: colors.primaryBlue,
               "&:hover": { bgcolor: colors.darkBlue }

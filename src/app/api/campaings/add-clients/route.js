@@ -84,6 +84,8 @@ export async function POST(req, context) {
       console.log("Campaña creada con ID:", campanha.campanha_id);
 
       if (clients.length > 0) {
+              console.log("Campaña creada con ID:", clients.length);
+
         // OPTIMIZACIÓN 2: Obtener todos los clientes existentes de una vez
         // ...existing code...
       const clientesExistentes = await prisma.cliente.findMany({
@@ -204,8 +206,37 @@ if (!cliente) {
           if (c.celular) todosClientes.set(c.celular, c);
           if (c.documento_identidad) todosClientes.set(c.documento_identidad, c);
         });
-
+        
+console.log("🔍 Total clientes en todosClientes:", todosClientes.size);
+console.log("🔍 Ejemplo keys todosClientes:", [...todosClientes.keys()].slice(0, 5));
         // OPTIMIZACIÓN: Manejo masivo de códigos de pago
+        for (const clientData of clients) {
+  const finalCelular = clientData.celular
+    ? "+51" + clientData.celular.toString().replace(/\s+/g, "")
+    : null;
+
+  if (!finalCelular) continue;
+
+  const cliente = todosClientes.get(finalCelular);
+
+  if (!cliente) {
+    console.warn("❌ Cliente no encontrado para:", finalCelular);
+    continue;
+  }
+
+  console.log(
+    "✅ Asociando cliente ID:",
+    cliente.cliente_id,
+    "con campaña ID:",
+    campanha.campanha_id
+  );
+
+  asociacionesParaCrear.push({
+    cliente_id: cliente.cliente_id,
+    campanha_id: campanha.campanha_id,
+  });
+}
+
         const codigosParaCrear = [];
         const codigosPago = clients
           .map(c => c.code_pago)
