@@ -122,25 +122,7 @@ const CampaignDetailPage = () => {
       setLoadingUpload(false);
     }
   };
-
-  // 🔧 CORRECCIÓN 4: Función para manejar cambio de gestor
-  const handleChangeGestor = async (gestorSeleccionado) => {
-    setSelectedGestor(gestorSeleccionado);
-    if (!gestorSeleccionado) {
-      setFilteredClients([]);
-      return;
-    }
-
-    try {
-      // Aquí debes hacer la petición para obtener los clientes del gestor
-      const response = await axiosInstance.get(`/clients/by-gestor/${gestorSeleccionado}`);
-      setFilteredClients(response.data || []);
-    } catch (error) {
-      console.error("Error al cargar clientes del gestor:", error);
-      setFilteredClients([]);
-    }
-  };
-
+ 
   function dividirEnLotes(array, tamañoLote) {
     const lotes = [];
     for (let i = 0; i < array.length; i += tamañoLote) {
