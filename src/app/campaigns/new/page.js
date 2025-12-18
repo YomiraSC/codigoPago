@@ -1,724 +1,602 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Container,
   Typography,
   Paper,
   Grid,
   TextField,
+  MenuItem,
+  Button,
+  Divider,
+  Box,
+  Chip,
   FormControl,
   InputLabel,
   Select,
-  MenuItem,
   Card,
-  CardContent,
-  Stack,
-  Button,
-  Divider,
-  Box, Autocomplete
 } from "@mui/material";
-import axiosInstance from "../../../../services/api";
-import { useEffect } from "react";
-import { LocalizationProvider, DatePicker, TimePicker } from "@mui/x-date-pickers";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import CircularProgress from '@mui/material/CircularProgress';
 import { DataGrid } from "@mui/x-data-grid";
+import CircularProgress from "@mui/material/CircularProgress";
+import axiosInstance from "../../../../services/api";
 
 export default function CampaignPage() {
+  /* ────────────────────────────
+     ESTADOS
+  ──────────────────────────── */
+  // Datos básicos de campaña
   const [campaignName, setCampaignName] = useState("");
-  const [selectedDatabase, setSelectedDatabase] = useState("");
-  const [columns, setColumns] = useState([]);
-  const [template, setTemplate] = useState("");
-  //const [clientFrequency, setClientFrequency] = useState("");
-  const [clientSegment, setClientSegment] = useState("");
-  const [cluster, setCluster] = useState("");
-  const [strategy, setStrategy] = useState("");
-  const [fecha, setFecha] = useState("");
-  const [linea,setLinea]= useState("");
-  const [variable1, setVariable1] = useState("");
-  const [variable2, setVariable2] = useState("");
-  const [sendDate, setSendDate] = useState(null);
-  const [sendTime, setSendTime] = useState(null);
-  const [templates, setTemplates] = useState([]); // Para almacenar las plantillas obtenidas
-  const [loadingColumns, setLoadingColumns] = useState(false);  // Estado para saber si estamos cargando las columnas
-  const [clients, setClients] = useState([]); 
-  const [selectedColumns, setSelectedColumns] = useState({
-  segmentacion: 'Segmento',
-  estrategia: 'Estrategia'
+  
+  // Datos de clientes y filtros
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [totalClients, setTotalClients] = useState(0);
+
+  const [filters, setFilters] = useState({
+    estrategia: "",
+    categoria_urgencia: "",
+    mes_gestion: "",
   });
-  // Datos simulados
-  const [databases, useDatabases] = useState([]);
 
-  const [segments,setSegments] = useState([]);
-  // const [clusters, setClusterValues] = useState([]);
-  const [strategies, setStrategyValues] = useState([]);
-  // const [fechaCuotaColumn, setFechaCuotaColumnValues] = useState([]);
-  // const [lineaValue, setLineaValues] = useState([]);
-  const variables = ["Variable 1", "Variable 2", "Variable 3"];
-  // al inicio: yomi
-  const [placeholders, setPlaceholders] = useState([])            // e.g. [ "1", "2", ... ]
-  const [variableMappings, setVariableMappings] = useState({})    // { "1": "nombre", "2": "telefono", … }
+  // Plantillas
+  const [templates, setTemplates] = useState([]);
+  const [template, setTemplate] = useState("");
+  const [placeholders, setPlaceholders] = useState([]);
+  const [variableMappings, setVariableMappings] = useState({});
 
-
-  useEffect(() => {
-    const fetchDatabases = async () => {
-      try {
-        const response = await axiosInstance.get("/bigquery"); // Solicitud GET al endpoint de bases de datos
-        console.log("Respuesta de BigQuery:", response.data);
-        useDatabases(response.data.tables); // Guarda las bases de datos en el estado 
-        console.log("Bases de datos obtenidas:", response.data);
-      } catch (error) {
-        console.error("Error al obtener bases de datos:", error);
+  /* ────────────────────────────
+     COLUMNAS DE LA TABLA
+  ──────────────────────────── */
+  const columns = [
+    { field: "dni", headerName: "DNI", width: 100 },
+    { field: "nombre", headerName: "Nombre", width: 180 },
+    { field: "telefono", headerName: "Teléfono", width: 120 },
+    { 
+      field: "estrategia", 
+      headerName: "Estrategia", 
+      width: 110,
+      renderCell: (params) => (
+        <Chip 
+          label={params.value} 
+          color={
+            params.value === 'convencional' ? 'error' :
+            params.value === 'retadora' ? 'warning' : 'success'
+          }
+          size="small"
+        />
+      )
+    },
+    { 
+      field: "categoria_urgencia", 
+      headerName: "Categoría Urgencia", 
+      width: 160,
+      renderCell: (params) => (
+        <Chip 
+          label={params.value} 
+          color={
+            params.value === 'CRITICA' ? 'error' :
+            params.value === 'ALTA' ? 'warning' :
+            params.value === 'MEDIA' ? 'info' : 'default'
+          }
+          size="small"
+        />
+      )
+    },
+    { 
+      field: "score_urgencia", 
+      headerName: "Score Urgencia", 
+      width: 140,
+      type: 'number',
+      valueFormatter: (params) => {
+        return params.value ? parseFloat(params.value).toFixed(2) : '0.00';
       }
-    }
+    },
+    { field: "mes_gestion", headerName: "Mes Gestión", width: 130 },
+    { 
+      field: "estado", 
+      headerName: "Estado", 
+      width: 110,
+      renderCell: (params) => (
+        <Chip 
+          label={params.value} 
+          color={params.value === 'ACTIVO' ? 'success' : 'default'}
+          size="small"
+        />
+      )
+    },
+    { 
+      field: "prioridad", 
+      headerName: "Prioridad", 
+      width: 90,
+      type: 'number'
+    },
+    { 
+      field: "codigos_pago", 
+      headerName: "Códigos de Pago", 
+      width: 200,
+      renderCell: (params) => {
+        if (params.value && params.value.trim() !== '') {
+          const codigos = params.value.split(',').map(c => c.trim()).filter(Boolean);
+          return (
+            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', py: 0.5 }}>
+              {codigos.map((codigo, idx) => (
+                <Chip 
+                  key={idx}
+                  label={codigo}
+                  color="info"
+                  size="small"
+                  sx={{ fontSize: '0.7rem', height: '20px' }}
+                />
+              ))}
+            </Box>
+          );
+        }
+        return <span style={{ color: '#999', fontSize: '0.85rem' }}>Sin código</span>;
+      }
+    },
+  ];
+
+  /* ────────────────────────────
+     CARGAR PLANTILLAS AL INICIO
+  ──────────────────────────── */
+  useEffect(() => {
     const fetchTemplates = async () => {
       try {
-        const response = await axiosInstance.get("/plantillas"); // Solicitud GET al endpoint de plantillas
-        setTemplates(response.data); // Guarda las plantillas en el estado
+        const response = await axiosInstance.get("/plantillas");
+        setTemplates(response.data || []);
         console.log("Plantillas obtenidas:", response.data);
       } catch (error) {
         console.error("Error al obtener plantillas:", error);
       }
     };
-    fetchDatabases();
+
     fetchTemplates();
   }, []);
 
-  //GIAN
-  // const handleTemplateChange = (event) => {
-  //   const selectedTemplate = event.target.value;
-  //   setTemplate(selectedTemplate);
-  // };
-  //YOMI
-  const handleTemplateChange = event => {
-    const tplId = event.target.value
-    setTemplate(tplId)
+  /* ────────────────────────────
+     APLICAR FILTROS
+  ──────────────────────────── */
+  const applyFilters = async () => {
+  if (loading) return;
 
-    // Buscamos la plantilla en nuestro array
-    const tpl = templates.find(t => t.id === tplId)
-    if (tpl) {
-      // extraemos todos los {{n}}
-      const matches = [...tpl.mensaje.matchAll(/{{\s*(\d+)\s*}}/g)]
-                        .map(m => m[1])
-      const uniq = Array.from(new Set(matches))
-      setPlaceholders(uniq)             // e.g. ["1"]
-      setVariableMappings({})           // resetea anteriores selecciones
-    } else {
-      setPlaceholders([])
-    }
-}
-
-
-
-
-const handleSubmit = async () => {
-  if (clients.length === 0) {
-    alert("No hay clientes para agregar a la campaña.");
-    return;
-  }
-
-  const campaignData = {
-    nombre_campanha: campaignName,
-    descripcion: "Descripción de campaña",
-    template_id: template,
-    fecha_inicio: sendDate,
-    fecha_fin: sendTime,
-    clients: clients,  // Aquí envías toda la información de los clientes
-    variableMappings,
-  };
+  console.log("👉 applyFilters ejecutado");
+  setLoading(true);
 
   try {
-    // Enviar solicitud para crear la campaña
-    const response = await axiosInstance.post("/campaings/add-clients", campaignData);
+    const payload = {
+      table: "base_filtrada",
+      filters: [
+        { column: "estrategia", value: filters.estrategia || "" },
+        { column: "categoria_urgencia", value: filters.categoria_urgencia || "" },
+        { column: "mes_gestion", value: filters.mes_gestion || "" },
+      ],
+    };
 
-    const campanhaId = response.data.campanha_id;  // Obtener el ID de la campaña creada
+    console.log("Enviando payload:", payload);
 
-    console.log("Campaña creada con ID:", campanhaId);
-
-    // Ahora los clientes serán automáticamente asociados con la campaña
-    alert("Campaña creada y clientes asociados exitosamente.");
+    const { data } = await axiosInstance.post("/bigquery/filtrar", payload);
+    setClients(data.rows || []);
+    setTotalClients(data.rows?.length || 0);
   } catch (error) {
-    console.error("Error al crear campaña o agregar clientes:", error);
-    alert("Hubo un problema al crear la campaña o agregar los clientes.");
+    console.error("Error al filtrar:", error);
+    alert("Error al aplicar filtros");
+  } finally {
+    setLoading(false);
   }
 };
 
 
-  const handleDatabaseChange = async (event, value) => {
-     setSelectedDatabase(value);
-     setLoadingColumns(true); 
-    
+  /* ────────────────────────────
+     LIMPIAR FILTROS
+  ──────────────────────────── */
+  const clearFilters = () => {
+    setFilters({
+      estrategia: "",
+      categoria_urgencia: "",
+      mes_gestion: "",
+    });
+    setClients([]);
+    setTotalClients(0);
+  };
+
+  /* ────────────────────────────
+     MANEJAR CAMBIO DE PLANTILLA
+  ──────────────────────────── */
+  const handleTemplateChange = (event) => {
+    const tplId = event.target.value;
+    setTemplate(tplId);
+
+    const tpl = templates.find(t => t.id === tplId);
+    if (tpl) {
+      // Extraer placeholders {{1}}, {{2}}, etc.
+      const matches = [...tpl.mensaje.matchAll(/{{\s*(\d+)\s*}}/g)]
+                        .map(m => m[1]);
+      const uniq = Array.from(new Set(matches));
+      setPlaceholders(uniq);
+      setVariableMappings({});
+    } else {
+      setPlaceholders([]);
+    }
+  };
+
+  /* ────────────────────────────
+     CREAR CAMPAÑA
+  ──────────────────────────── */
+  const handleSubmit = async () => {
+    // Validaciones
+    if (!campaignName.trim()) {
+      alert("Por favor ingresa un nombre para la campaña");
+      return;
+    }
+
+    if (clients.length === 0) {
+      alert("No hay clientes para agregar a la campaña. Aplica filtros primero.");
+      return;
+    }
+
+    if (!template) {
+      alert("Por favor selecciona una plantilla");
+      return;
+    }
+
+    // Verificar que todas las variables estén mapeadas
+    const unmappedVars = placeholders.filter(idx => !variableMappings[idx]);
+    if (unmappedVars.length > 0) {
+      alert(`Por favor mapea todas las variables: ${unmappedVars.join(", ")}`);
+      return;
+    }
+
+    const campaignData = {
+      nombre_campanha: campaignName,
+      descripcion: "Descripción de campaña",
+      template_id: template,
+      fecha_inicio: new Date(),
+      fecha_fin: new Date(),
+      clients: clients,
+      variableMappings,
+    };
+
     try {
-      const response = await axiosInstance.get("/bigquery/columns", {
-        params: { database: value } // Enviamos el nombre de la base de datos seleccionada);
+      setLoading(true);
+      const response = await axiosInstance.post("/campaings/add-clients", campaignData);
+      const campanhaId = response.data.campanha_id;
+      
+      console.log("Campaña creada con ID:", campanhaId);
+      alert("Campaña creada y clientes asociados exitosamente");
+      
+      // Limpiar formulario
+      setCampaignName("");
+      setTemplate("");
+      setPlaceholders([]);
+      setVariableMappings({});
+      setClients([]);
+      setTotalClients(0);
+      setFilters({
+        estrategia: "",
+        categoria_urgencia: "",
+        mes_gestion: "",
       });
-      console.log("Columnas obtenidas:", response.data);
-      setColumns(response.data.columns); 
-      console.log("Columnas disponibles:", columns);
-            setLoadingColumns(false);  // Detener el indicador de carga
-
-       handleColumnChange(value);
-    }catch (error) {
-      console.error('Error al obtener las columnas:', error);
-            setLoadingColumns(false);  // Detener el indicador de carga
-
-    }
-  };
-  const handleColumnChange = async (value) => {
-    /*setSelectedColumns({
-      ...selectedColumns,
-      [filterType]: value
-    });*/
-    setLoadingColumns(true);  
-     try {
-      const response = await axiosInstance.get("/bigquery/columns/filtros", {
-        params: {
-          database: value,
-          //segmentColumn: "Frente",
-          segmentColumn: "Segmento",
-        //   clusterColumn: "Cluster",
-          estrategiaColumn: "Estrategia",
-          //estrategiaColumn: "Estrategia_",
-        //   fechaCuotaColumn: "Fec_Venc_Cuota",
-        //   lineaColumn: "Linea"
-        }  // Enviamos los nombres de las columnas seleccionadas
-      });
-      console.log("Valores únicos obtenidos:", response.data);
-
-      setSegments(response.data.segmentos);
-    //   setClusterValues(response.data.clusters);
-      setStrategyValues(response.data.estrategias);
-    //   setFechaCuotaColumnValues(response.data.fechaCuotaColumn);
-    //   setLineaValues(response.data.lineas);
-      // setColumnValues({
-      //   segmento: response.data.segmentos,
-      //   // cluster: response.data.clusters,
-      //   estrategia: response.data.estrategias
-      // });
-      setLoadingColumns(false);  // Detener el indicador de carga
     } catch (error) {
-      console.error("Error al obtener los valores únicos:", error);
-      setLoadingColumns(false);  // Detener el indicador de carga en caso de error
+      console.error("Error al crear campaña:", error);
+      alert("Hubo un problema al crear la campaña: " + (error.response?.data?.error || error.message));
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Colores base para usar en estilos
+  /* ────────────────────────────
+     ESTILOS
+  ──────────────────────────── */
   const colors = {
     primaryBlue: "#007391",
     darkBlue: "#254e59",
-    yellowAccent: "#FFD54F", // amarillo suave
-    lightBlueBg: "#E3F2FD", // azul claro para fondo preview
+    yellowAccent: "#FFD54F",
+    lightBlueBg: "#E3F2FD",
     white: "#fff",
   };
 
-  // --- NUEVO: aplicar filtros y enviar al backend -----------------------------
-// ── NUEVO: arma el payload y envíalo ─────────────────────────────
-const applyFilters = async () => {
-  if (!selectedDatabase) {
-    alert('Selecciona una base de datos antes de filtrar');
-    return;
-  }
- 
-  // Array que contendrá 0-3 filtros, según lo que elija el usuario
-  const filters = [];
-
-  if (selectedColumns.segmentacion) {
-    filters.push({
-      type: 'segmentacion',
-      column: selectedColumns.segmentacion, // nombre de la columna
-      value : clientSegment            // valor elegido en el <Select>
-    });
-  }
-
-//   if (selectedColumns.cluster) {
-//     filters.push({
-//       type: 'cluster',
-//       column: selectedColumns.cluster,
-//       value : cluster
-//     });
-//   }
-
-  if (selectedColumns.estrategia) {
-    filters.push({
-      type: 'estrategia',
-      column: selectedColumns.estrategia,
-      value : strategy
-    });
-  }
-//   if (selectedColumns.fechaCuota) {
-//     filters.push({
-//       type: 'fechaCuota',
-//       column: selectedColumns.fechaCuota,
-//       value : fecha
-//     });
-//   }
-
-//   if (selectedColumns.linea) {
-//     filters.push({
-//       type: 'Linea',
-//       column: selectedColumns.linea,
-//       value : linea
-//     });
-//   }
-
-  if (filters.length === 0) {
-    alert('Elige al menos un filtro antes de continuar');
-    return;
-  }
-
-  const payload = {
-    table: selectedDatabase, // nombre de la tabla o vista en BigQuery
-    filters                  // array con los filtros
-  };
-
-  try {
-    console.log('Enviando payload de filtros:', payload);
-    const { data } = await axiosInstance.post('/bigquery/filtrar', payload);
-    console.log('Datos filtrados →', data);
-    setClients(data.rows); // Guarda los datos filtrados en el estado
-    console.log('Datos filtrados:', data);
-    // TODO: guarda "data" en estado o muéstralo en pantalla
-  } catch (error) {
-    console.error('Error al aplicar filtros:', error);
-    alert('Ocurrió un problema al aplicar los filtros');
-  }
-};
-// ─────────────────────────────────────────────────────────────────
- const columnsgrid = [
-    // { field: 'Codigo_Asociado', headerName: 'Código Asociado', width: 180 },
-    // { field: 'nombre', headerName: 'Nombre', width: 180 },
-    // { field: 'telefono', headerName: 'Teléfono', width: 180 },
-    // { field: 'segmentacion', headerName: 'Segmento', width: 180 },
-    // { field: 'monto', headerName: 'Monto', width: 150 },
-    // { field: 'feccuota', headerName: 'Fecha Cuota', width: 180 },
-    // { field: 'email', headerName: 'Correo', width: 220 },
-    // { field: 'modelo', headerName: 'Modelo', width: 180 },
-    // { field: 'codpago', headerName: 'Código Pago', width: 180 },
-    // { field: 'Cta_Act_Pag', headerName: 'Cuotas', width: 120 },
-    { field: 'celular', headerName: 'Teléfono', width: 120 },
-    { field: 'nombre', headerName: 'Nombre', width: 120 },
-    { field: 'documento_identidad', headerName: 'DNI', width: 120 },
-    { field: 'segmentacion', headerName: 'Segmentación', width: 120 },
-    { field: 'Gestion', headerName: 'Gestión', width: 120 },
-    { field: 'code_pago', headerName: 'Código Pago', width: 180 },
-    { field: 'modelo', headerName: 'Modelo', width: 180 },
-    { field: 'feccuota', headerName: 'Fecha de Cuota', width: 180 },
-  ];
-// ---------------------------------------------------------------------------
-
-
+  /* ────────────────────────────
+     UI
+  ──────────────────────────── */
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Container
-        maxWidth="lg"
-        sx={{
-          mt: 4,
-          mb: 6,
-          bgcolor: "#F0F7FA",
-          borderRadius: 3,
-          boxShadow: 3,
-          p: { xs: 2, sm: 4 },
-        }}
-      >
-        <Typography
-          variant="h3"
-          sx={{
-            color: colors.primaryBlue,
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+      <Paper sx={{ p: 4 }}>
+        <Typography 
+          variant="h4" 
+          mb={3}
+          sx={{ 
+            color: colors.primaryBlue, 
             fontWeight: "700",
-            mb: 4,
-            textAlign: "center",
-            letterSpacing: "0.05em",
+            textAlign: "center" 
           }}
         >
-          Crear Campaña
+          Crear Campaña - Gestión de Clientes
         </Typography>
 
-        <Paper
-          elevation={6}
-          sx={{
-            p: { xs: 3, sm: 5 },
-            borderRadius: 3,
-            bgcolor: colors.white,
+        {/* ═══════════════════════════════════════════════════
+            SECCIÓN 1: DATOS BÁSICOS DE LA CAMPAÑA
+        ═══════════════════════════════════════════════════ */}
+        <Typography
+          variant="h6"
+          sx={{ 
+            color: colors.darkBlue, 
+            fontWeight: "700", 
+            mb: 3, 
+            borderBottom: `3px solid ${colors.primaryBlue}`, 
+            pb: 1 
           }}
         >
-          {/* DATOS BASICOS */}
-          <Typography
-            variant="h6"
-            sx={{ color: colors.darkBlue, fontWeight: "700", mb: 3, borderBottom: `3px solid ${colors.primaryBlue}`, pb: 1 }}
-          >
-            Datos Básicos
-          </Typography>
+          1. Datos Básicos
+        </Typography>
 
-          <Grid container spacing={4} mb={5}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Nombre de la campaña"
-                fullWidth
-                value={campaignName}
-                onChange={(e) => setCampaignName(e.target.value)}
+        <Grid container spacing={3} mb={4}>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Nombre de la campaña"
+              fullWidth
+              value={campaignName}
+              onChange={(e) => setCampaignName(e.target.value)}
+              placeholder="Ej: Campaña Diciembre 2024"
+              sx={{ bgcolor: colors.white, borderRadius: 2 }}
+            />
+          </Grid>
+        </Grid>
+
+        <Divider sx={{ mb: 4 }} />
+
+        {/* ═══════════════════════════════════════════════════
+            SECCIÓN 2: FILTROS PARA SELECCIONAR CLIENTES
+        ═══════════════════════════════════════════════════ */}
+        <Typography
+          variant="h6"
+          sx={{ 
+            color: colors.darkBlue, 
+            fontWeight: "700", 
+            mb: 3, 
+            borderBottom: `3px solid ${colors.primaryBlue}`, 
+            pb: 1 
+          }}
+        >
+          2. Filtros de Clientes
+        </Typography>
+
+        <Box display="flex" gap={2} mb={3} flexWrap="wrap" alignItems="center">
+          <TextField
+            select
+            label="Estrategia"
+            value={filters.estrategia}
+            onChange={(e) =>
+              setFilters({ ...filters, estrategia: e.target.value })
+            }
+            sx={{ width: 200 }}
+            size="small"
+          >
+            <MenuItem value="">Todos</MenuItem>
+            <MenuItem value="retadora">Retadora</MenuItem>
+            <MenuItem value="convencional">Convencional</MenuItem>
+          </TextField>
+
+          <TextField
+            select
+            label="Categoría Urgencia"
+            value={filters.categoria_urgencia}
+            onChange={(e) =>
+              setFilters({ ...filters, categoria_urgencia: e.target.value })
+            }
+            sx={{ width: 220 }}
+            size="small"
+          >
+            <MenuItem value="">Todos</MenuItem>
+            <MenuItem value="CRITICA">CRÍTICA</MenuItem>
+            <MenuItem value="ALTA">ALTA</MenuItem>
+            <MenuItem value="MEDIA">MEDIA</MenuItem>
+            <MenuItem value="BAJA">BAJA</MenuItem>
+          </TextField>
+
+          <TextField
+            type="month"
+            label="Mes de gestión"
+            InputLabelProps={{ shrink: true }}
+            value={filters.mes_gestion}
+            onChange={(e) =>
+              setFilters({ ...filters, mes_gestion: e.target.value })
+            }
+            sx={{ width: 200 }}
+            size="small"
+          />
+
+          <Button 
+            variant="contained" 
+            onClick={applyFilters}
+            disabled={false}
+            sx={{ 
+              bgcolor: colors.primaryBlue,
+              "&:hover": { bgcolor: colors.darkBlue }
+            }}
+          >
+            Aplicar Filtros
+          </Button>
+
+          <Button 
+            variant="outlined" 
+            onClick={clearFilters}
+            disabled={loading}
+          >
+            Limpiar
+          </Button>
+
+          {totalClients > 0 && (
+            <Chip 
+              label={`${totalClients} clientes encontrados`} 
+              color="primary" 
+              sx={{ ml: 'auto', fontWeight: 600 }}
+            />
+          )}
+        </Box>
+
+        {/* ───── TABLA DE CLIENTES ───── */}
+        <Box sx={{ height: 500, width: "100%", mb: 4 }}>
+          {loading ? (
+            <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+              <CircularProgress />
+            </Box>
+          ) : (
+            <DataGrid
+              rows={clients.map((row, idx) => ({
+                id: row.dni || idx,
+                ...row,
+              }))}
+              columns={columns}
+              initialState={{
+                pagination: {
+                  paginationModel: { pageSize: 25 },
+                },
+              }}
+              pageSizeOptions={[10, 25, 50, 100]}
+              checkboxSelection
+              disableRowSelectionOnClick
+              localeText={{
+                noRowsLabel: 'No hay datos para mostrar. Aplica filtros para ver clientes.',
+                MuiTablePagination: {
+                  labelRowsPerPage: 'Filas por página:',
+                }
+              }}
+            />
+          )}
+        </Box>
+
+        <Divider sx={{ mb: 4 }} />
+
+        {/* ═══════════════════════════════════════════════════
+            SECCIÓN 3: PLANTILLA Y VARIABLES
+        ═══════════════════════════════════════════════════ */}
+        <Typography
+          variant="h6"
+          sx={{ 
+            color: colors.darkBlue, 
+            fontWeight: "700", 
+            mb: 3, 
+            borderBottom: `3px solid ${colors.primaryBlue}`, 
+            pb: 1 
+          }}
+        >
+          3. Plantilla de Mensaje
+        </Typography>
+
+        <Grid container spacing={3} mb={4}>
+          {/* Selector de plantilla */}
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth>
+              <InputLabel sx={{ color: colors.darkBlue, fontWeight: 600 }}>
+                Seleccionar Plantilla
+              </InputLabel>
+              <Select
+                value={template}
+                onChange={handleTemplateChange}
+                label="Seleccionar Plantilla"
                 sx={{ bgcolor: colors.white, borderRadius: 2 }}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel sx={{ color: 'darkBlue', fontWeight: 600 }}></InputLabel>
-                <Autocomplete
-                  value={selectedDatabase}
-                  onChange={handleDatabaseChange}
-                  options={databases}
-                  renderInput={(params) => <TextField {...params} label="Base de Datos" />}
-                  isOptionEqualToValue={(option, value) => option === value}  // Asegura que las opciones coincidan con el valor
-                  sx={{
-                    bgcolor: 'white',
-                    borderRadius: 2,
-                    "& .MuiSelect-select": { fontWeight: 600 },
-                  }}
-                  disableClearable  // No permite borrar la selección
-                  freeSolo  // Permite escribir texto que no está en las opciones (útil para búsqueda)
-                />
-              </FormControl>
-            </Grid>
-            
-            
-
-            
+              >
+                <MenuItem value="">
+                  <em>-- Selecciona una plantilla --</em>
+                </MenuItem>
+                {templates.map((t) => (
+                  <MenuItem key={t.id} value={t.id}>
+                    {t.nombre_template}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Grid>
 
-          <Divider sx={{ mb: 5 }} />
-
-          {/* SEGMENTACION */}
-          <Typography
-            variant="h6"
-            sx={{ color: colors.darkBlue, fontWeight: "700", mb: 3, borderBottom: `3px solid ${colors.primaryBlue}`, pb: 1 }}
-          >
-            Segmentación
-          </Typography>
-
-          <Grid container spacing={4} mb={5}>
-            <Grid item xs={12} sm={6} md={4}>
-              <FormControl fullWidth>
-                <InputLabel sx={{ color: colors.darkBlue, fontWeight: 600 }}>Segmentación</InputLabel>
-                <Select
-                  value={clientSegment}
-                  onChange={(e) => setClientSegment(e.target.value)}
-                  label="Segmentacion"
-                  sx={{ bgcolor: colors.white, borderRadius: 2, "& .MuiSelect-select": { fontWeight: 600 } }}
-                >
-                  <MenuItem value="Todos">Todos</MenuItem>
-                  {segments.map((seg) => (
-                    <MenuItem key={seg} value={seg}>
-                      {seg}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+          {/* Vista previa de la plantilla */}
+          {template && (
+            <Grid item xs={12} md={6}>
+              <Card
+                sx={{
+                  bgcolor: colors.lightBlueBg,
+                  p: 3,
+                  minHeight: 140,
+                  borderRadius: 3,
+                  border: `1.5px solid ${colors.primaryBlue}`,
+                  boxShadow: `0 4px 12px rgba(0, 115, 145, 0.15)`,
+                }}
+              >
+                <Typography variant="subtitle1" fontWeight="bold" mb={1} color={colors.darkBlue}>
+                  📱 Vista previa
+                </Typography>
+                <Typography variant="body1" color={colors.darkBlue}>
+                  {templates.find((t) => t.id === template)?.mensaje}
+                </Typography>
+              </Card>
             </Grid>
+          )}
 
-            {/* <Grid item xs={12} sm={6} md={4}>
+          {/* Mapeo de variables dinámicas */}
+          {placeholders.map(idx => (
+            <Grid item xs={12} sm={6} md={4} key={idx}>
               <FormControl fullWidth>
-                <InputLabel sx={{ color: colors.darkBlue, fontWeight: 600 }}>Cluster</InputLabel>
+                <InputLabel>Variable {idx}</InputLabel>
                 <Select
-                  value={cluster}
-                  onChange={(e) => setCluster(e.target.value)}
-                  label="Cluster"
-                  sx={{ bgcolor: colors.white, borderRadius: 2, "& .MuiSelect-select": { fontWeight: 600 } }}
+                  value={variableMappings[idx] || ""}
+                  onChange={e =>
+                    setVariableMappings(vm => ({ ...vm, [idx]: e.target.value }))
+                  }
+                  label={`Variable ${idx}`}
                 >
-                  <MenuItem value="Todos">Todos</MenuItem>
-
-                  {clusters.map((cl) => (
-                    <MenuItem key={cl} value={cl}>
-                      {cl}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid> */}
-
-            <Grid item xs={12} sm={6} md={4}>
-              <FormControl fullWidth>
-                <InputLabel sx={{ color: colors.darkBlue, fontWeight: 600 }}>Gestión</InputLabel>
-                <Select
-                  value={strategy}
-                  onChange={(e) => setStrategy(e.target.value)}
-                  label="Gestion"
-                  sx={{ bgcolor: colors.white, borderRadius: 2, "& .MuiSelect-select": { fontWeight: 600 } }}
-                >
-                                    <MenuItem value="Todos">Todos</MenuItem>
-
-                  {strategies.map((str) => (
-                    <MenuItem key={str} value={str}>
-                      {str}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            {/* <Grid item xs={12} sm={6} md={4}>
-              <FormControl fullWidth>
-                <InputLabel sx={{ color: colors.darkBlue, fontWeight: 600 }}>Fecha Cuota</InputLabel>
-                <Select
-                  value={fecha}
-                  onChange={(e) => setFecha(e.target.value)}
-                  label="Fecha Cuota"
-                  sx={{ bgcolor: colors.white, borderRadius: 2, "& .MuiSelect-select": { fontWeight: 600 } }}
-                >
-                                    <MenuItem value="Todos">Todos</MenuItem>
-
-                  {fechaCuotaColumn.map((str) => (
-                    <MenuItem key={str} value={str}>
-                      {str}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid> */}
-
-            {/* <Grid item xs={12} sm={6} md={4}>
-              <FormControl fullWidth>
-                <InputLabel sx={{ color: colors.darkBlue, fontWeight: 600 }}>Linea</InputLabel>
-                <Select
-                  value={linea}
-                  onChange={(e) => setLinea(e.target.value)}
-                  label="Fecha Cuota"
-                  sx={{ bgcolor: colors.white, borderRadius: 2, "& .MuiSelect-select": { fontWeight: 600 } }}
-                >
-                                    <MenuItem value="Todos">Todos</MenuItem>
-
-                  {lineaValue.map((str) => (
-                    <MenuItem key={str} value={str}>
-                      {str}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid> */}
-
-            {/* Botón para aplicar los filtros */}
-            <Grid item xs={12}>
-              <Button variant="contained" color="primary" onClick={applyFilters} sx={{ mt: 2 }}>
-                Aplicar Filtros
-              </Button>
-            </Grid>
-          </Grid>
-
-          <Divider sx={{ mb: 5 }} />
-                  <Box sx={{ height: 400, width: '100%' }}>
-        {loadingColumns ? (
-          <CircularProgress sx={{ display: "block", margin: "0 auto" }} /> // Mostrar cargando
-        ) : (
-          <DataGrid
-    rows={clients.map((client, index) => ({
-      ...client,
-      id: client.telefono || index,  // Asegúrate de que 'rows' tenga un 'id' único
-    }))} 
-    columns={columnsgrid}  // Utilizando el arreglo columnsgrid para definir las columnas
-    pageSize={5}
-    rowsPerPageOptions={[5, 10, 20]}
-    pagination
-    checkboxSelection
-    disableSelectionOnClick
-    loading={loadingColumns}
-  />
-        )}
-      </Box>
-                <Divider sx={{ mb: 5 }} />
-
-          {/* VARIABLES */}
-          {/*<Typography
-            variant="h6"
-            sx={{ color: colors.darkBlue, fontWeight: "700", mb: 3, borderBottom: `3px solid ${colors.primaryBlue}`, pb: 1 }}
-          >
-            Variables adicionales
-          </Typography>
-
-          <Grid container spacing={4} mb={5}>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel sx={{ color: colors.darkBlue, fontWeight: 600 }}>Variable 1</InputLabel>
-                <Select
-                  value={variable1}
-                  onChange={(e) => setVariable1(e.target.value)}
-                  label="Variable 1"
-                  sx={{ bgcolor: colors.white, borderRadius: 2, "& .MuiSelect-select": { fontWeight: 600 } }}
-                >
-                  {variables.map((v) => (
-                    <MenuItem key={v} value={v}>
-                      {v}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel sx={{ color: colors.darkBlue, fontWeight: 600 }}>Variable 2</InputLabel>
-                <Select
-                  value={variable2}
-                  onChange={(e) => setVariable2(e.target.value)}
-                  label="Variable 2"
-                  sx={{ bgcolor: colors.white, borderRadius: 2, "& .MuiSelect-select": { fontWeight: 600 } }}
-                >
-                  {variables.map((v) => (
-                    <MenuItem key={v} value={v}>
-                      {v}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>*/}
-
-          <Divider sx={{ mb: 5 }} />
-
-          {/* PLANTILLA Y VISTA PREVIA */}
-          <Typography
-            variant="h6"
-            sx={{ color: colors.darkBlue, fontWeight: "700", mb: 3, borderBottom: `3px solid ${colors.primaryBlue}`, pb: 1 }}
-          >
-            Plantilla de Mensaje
-          </Typography>
-
-          <Grid container spacing={4} mb={5}>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel sx={{ color: "#254e59", fontWeight: 600 }}>Seleccionar Plantilla</InputLabel>
-                <Select
-                  value={template}  // Este es el id de la plantilla seleccionada
-                  onChange={handleTemplateChange}
-                  label="Seleccionar Plantilla"
-                  sx={{ bgcolor: "#fff", borderRadius: 2, "& .MuiSelect-select": { fontWeight: 600 } }}
-                >
-                  {templates.map((t) => (
-                    <MenuItem key={t.id} value={t.id}>
-                      {t.nombre_template} {/* Aquí se muestra el nombre de la plantilla */}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            {/* yomi */}
-            {placeholders.map(idx => (
-              <Grid item xs={12} sm={4} key={idx}>
-                <FormControl fullWidth>
-                  <InputLabel>Variable {idx}</InputLabel>
-                  <Select
-                    value={variableMappings[idx] || ""}
-                    onChange={e =>
-                      setVariableMappings(vm => ({ ...vm, [idx]: e.target.value }))
-                    }
-                    label={`Variable ${idx}`}
-                  >
-                    {/* usamos columnsgrid para poblar los campos de la tabla */}
-                    {columnsgrid.map(col => (
+                  <MenuItem value="">
+                    <em>-- Selecciona campo --</em>
+                  </MenuItem>
+                  {columns
+                    .filter(col => col.field !== 'estrategia' && col.field !== 'categoria_urgencia' && col.field !== 'estado') // Excluir columnas con chips
+                    .map(col => (
                       <MenuItem key={col.field} value={col.field}>
                         {col.headerName}
                       </MenuItem>
                     ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-            ))}
-            {/* yomi termina*/}
-            <Grid item xs={12} sm={6}>
-              {template && (
-                <Card
-                  sx={{
-                    bgcolor: "#E3F2FD",  // Usando el color de fondo claro
-                    p: 3,
-                    minHeight: 140,
-                    borderRadius: 3,
-                    border: "1.5px solid #007391",  // Color de borde
-                    boxShadow: "0 4px 12px rgba(0, 115, 145, 0.15)",  // Sombra para darle profundidad
-                  }}
-                >
-                  <Typography variant="subtitle1" fontWeight="bold" mb={1} color="#254e59">
-                    Vista previa
-                  </Typography>
-                  <Typography variant="body1" color="#254e59">
-                    {/* Aquí buscamos la plantilla seleccionada por id y mostramos su mensaje */}
-                    {templates.find((t) => t.id === template)?.mensaje}
-                  </Typography>
-                </Card>
-              )}
+                </Select>
+              </FormControl>
             </Grid>
-          </Grid>
+          ))}
+        </Grid>
 
-          <Divider sx={{ mb: 5 }} />
+        <Divider sx={{ mb: 4 }} />
 
-          {/* FECHA Y HORA */}
-          {/*<Typography
-            variant="h6"
-            sx={{ color: colors.darkBlue, fontWeight: "700", mb: 3, borderBottom: `3px solid ${colors.primaryBlue}`, pb: 1 }}
+        {/* ═══════════════════════════════════════════════════
+            SECCIÓN 4: BOTÓN CREAR CAMPAÑA
+        ═══════════════════════════════════════════════════ */}
+        <Box textAlign="center" mt={4}>
+          <Button
+            variant="contained"
+            size="large"
+            onClick={handleSubmit}
+            disabled={loading || clients.length === 0 || !template || !campaignName.trim()}
+            sx={{
+              bgcolor: colors.yellowAccent,
+              color: colors.darkBlue,
+              fontWeight: "700",
+              px: 6,
+              py: 1.5,
+              borderRadius: 3,
+              "&:hover": {
+                bgcolor: "#FFC107",
+              },
+              "&:disabled": {
+                bgcolor: "#ccc",
+                color: "#666"
+              }
+            }}
           >
-            Fecha y Hora de Envío
-          </Typography>*/}
-
-          {/*<Grid container spacing={4} mb={4}>
-            <Grid item xs={12} sm={6}>
-              <DatePicker
-                label="Fecha de Envío"
-                value={sendDate}
-                onChange={setSendDate}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    fullWidth
-                    sx={{
-                      bgcolor: colors.white,
-                      borderRadius: 2,
-                      "& .MuiInputBase-input": { fontWeight: 600 },
-                    }}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TimePicker
-                label="Hora de Envío"
-                value={sendTime}
-                onChange={setSendTime}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    fullWidth
-                    sx={{
-                      bgcolor: colors.white,
-                      borderRadius: 2,
-                      "& .MuiInputBase-input": { fontWeight: 600 },
-                    }}
-                  />
-                )}
-              />
-            </Grid>
-          </Grid>*/}
-
-          <Box textAlign="center" mt={6}>
-            <Button
-              variant="contained"
-              size="large"
-              sx={{
-                bgcolor: colors.yellowAccent,
-                color: colors.darkBlue,
-                fontWeight: "700",
-                px: 6,
-                py: 1.5,
-                borderRadius: 3,
-                "&:hover": {
-                  bgcolor: "#FFC107",
-                },
-              }}
-              onClick={handleSubmit}
-            >
-              Crear Campaña
-            </Button>
-          </Box>
-        </Paper>
-      </Container>
-    </LocalizationProvider>
+            {loading ? "Creando..." : "Crear Campaña"}
+          </Button>
+          
+          {clients.length === 0 && (
+            <Typography variant="caption" display="block" mt={2} color="text.secondary">
+              💡 Aplica filtros primero para seleccionar clientes
+            </Typography>
+          )}
+        </Box>
+      </Paper>
+    </Container>
   );
 }
