@@ -53,6 +53,7 @@ const CampaignDetailPage = () => {
     sendingInProgress,
   } = useCampaignDetail(campaignId);
 
+
   // 🔧 CORRECCIÓN 1: Cargar gestores al montar el componente
   useEffect(() => {
     const loadGestores = async () => {
@@ -67,20 +68,12 @@ const CampaignDetailPage = () => {
     loadGestores();
   }, []);
 
-  // 🔧 CORRECCIÓN 2: Cargar detalles de campaña cuando cambia el ID
-  useEffect(() => {
-    if (campaignId) {
-      console.log("Cargando campaña con ID:", campaignId);
-      fetchCampaignDetail();
-    }
-  }, [campaignId, fetchCampaignDetail]);
-
   // 🔧 CORRECCIÓN 3: Log para depuración cuando cambia la campaña
   useEffect(() => {
     console.log("Datos de campaña actualizados:", campaign);
     console.log("Clientes de campaña:", campaignClients);
     console.log("Total de clientes:", pagination.total);
-  }, [campaign, campaignClients, pagination]);
+  }, []);
 
   const handleFileUpload = (event) => {
     const uploadedFile = event.target.files[0];
@@ -106,22 +99,29 @@ const CampaignDetailPage = () => {
     };
     reader.readAsArrayBuffer(uploadedFile);
   };
+const handleSaveClients = async () => {
+  if (!file) return;
 
-  const handleSaveClients = async () => {
-    if (!file) return;
-    setLoadingUpload(true);
-    try {
-      await handleUploadClients(file);
-      setOpenModal(false);
-      setFile(null);
-      setClients([]);
-      await fetchCampaignDetail();
-    } catch (error) {
-      console.error("Error al subir clientes:", error);
-    } finally {
-      setLoadingUpload(false);
-    }
-  };
+  setLoadingUpload(true);
+
+  try {
+    // Subir archivo de clientes
+    await handleUploadClients(file);
+
+    // Cerrar modal y limpiar archivo seleccionado
+    setOpenModal(false);
+    setFile(null);
+
+    // Refrescar la lista de clientes en la página actual
+    await fetchCampaignDetail(pagination.page, pagination.pageSize);
+
+  } catch (error) {
+    console.error("Error al subir clientes:", error);
+  } finally {
+    setLoadingUpload(false);
+  }
+};
+
  
   function dividirEnLotes(array, tamañoLote) {
     const lotes = [];

@@ -11,7 +11,6 @@ export async function POST(req) {
       fecha_fin,
       clients,
       variableMappings,
-      filters, // Filtros aplicados para guardar
     } = await req.json();
 
     // Validar que haya clientes
@@ -22,58 +21,93 @@ export async function POST(req) {
       );
     }
 
-    // 1. Crear la campaña
+    console.log(`📋 Creando campaña "${nombre_campanha}" con ${clients.length} clientes`);
+
+    // 1. Preparar datos de la campaña
+    const campanhaData = {
+      nombre_campanha,
+      descripcion: descripcion || "Sin descripción",
+      fecha_inicio: fecha_inicio ? new Date(fecha_inicio) : new Date(),
+      fecha_fin: fecha_fin ? new Date(fecha_fin) : null,
+      variable_mappings: variableMappings || {},
+      estado_campanha: "activa", // ✅ Minúscula según tu schema
+      num_clientes: clients.length,
+      tipo: "in", // ✅ Valor por defecto según tu schema
+    };
+
+    // 🔹 Conectar template si existe (usando relación, no campo directo)
+    if (template_id) {
+      campanhaData.template = {
+        connect: { id: parseInt(template_id) }
+      };
+    }
+
+    // Crear la campaña
     const campanha = await prisma.campanha.create({
-      data: {
-        nombre_campanha,
-        descripcion: descripcion || "Sin descripción",
-        template_id: template_id || null,
-        fecha_inicio: fecha_inicio ? new Date(fecha_inicio) : new Date(),
-        fecha_fin: fecha_fin ? new Date(fecha_fin) : null,
-        variable_mappings: variableMappings || {},
-        filtros_aplicados: filters || {}, // Guardar los filtros aplicados
-        estado_campanha: "Activo",
-        num_clientes: clients.length,
-      },
+      data: campanhaData,
     });
+
+    console.log(`✅ Campaña creada con ID: ${campanha.campanha_id}`);
 
     // 2. Preparar datos para guardar en campanha_temporal
-    const dataToInsert = clients.map((cliente) => {
-      // Normalizar el número de teléfono
-      let celular = cliente.celular || cliente.telefono || "";
-      if (celular && !celular.startsWith("+51")) {
-        // Remover espacios y caracteres no numéricos excepto +
-        celular = celular.replace(/\s+/g, "").trim();
-        if (!celular.startsWith("+")) {
-          celular = `+51${celular}`;
-        }
-      }
+    const dataToInsert = clients
+      .map((cliente) => {
+        // Normalizar el número de teléfono
+        let celular = cliente.celular || cliente.telefono || "";
 
-      return {
-        campanha_id: campanha.campanha_id,
-        celular: celular,
-        nombre: cliente.nombre || cliente.Nombre || null,
-      };
-    });
+        if (celular) {
+          // Convertir a string y remover espacios
+          celular = celular.toString().replace(/\s+/g, "").trim();
+
+          // Agregar +51 si no tiene prefijo
+          if (!celular.startsWith("+")) {
+            celular = `+51${celular}`;
+          }
+        }
+
+        return {
+          campanha_id: campanha.campanha_id,
+          celular: celular || null,
+          nombre: cliente.nombre || cliente.Nombre || null,
+        };
+      })
+      .filter((c) => c.celular); // ✅ Solo guardar clientes con celular válido
+
+    console.log(`📞 Clientes válidos con celular: ${dataToInsert.length}`);
 
     // 3. Guardar clientes en campanha_temporal
-    const result = await prisma.campanha_temporal.createMany({
-      data: dataToInsert,
-      skipDuplicates: true,
-    });
+    let result = { count: 0 };
 
-    console.log(
-      `✅ Campaña creada: ${campanha.campanha_id} con ${result.count} clientes`
-    );
+    if (dataToInsert.length > 0) {
+      result = await prisma.campanha_temporal.createMany({
+        data: dataToInsert,
+        skipDuplicates: true,
+      });
 
+      console.log(`✅ ${result.count} clientes guardados en campanha_temporal`);
+    }
+
+    // 4. Retornar respuesta exitosa
     return NextResponse.json({
+      success: true,
       message: "Campaña creada y clientes asociados exitosamente",
       campanha_id: campanha.campanha_id,
       clientes_guardados: result.count,
-      campanha,
+      campanha: {
+        campanha_id: campanha.campanha_id,
+        nombre_campanha: campanha.nombre_campanha,
+        descripcion: campanha.descripcion,
+        estado_campanha: campanha.estado_campanha,
+        num_clientes: campanha.num_clientes,
+        fecha_inicio: campanha.fecha_inicio,
+        fecha_fin: campanha.fecha_fin,
+      },
     });
+
   } catch (error) {
-    console.error("❌ Error al crear campaña o agregar clientes:", error);
+    console.error("❌ Error al crear campaña:", error);
+    console.error("❌ Detalles:", error.message);
+
     return NextResponse.json(
       {
         error: "Error al crear la campaña o agregar los clientes",
@@ -83,4 +117,3 @@ export async function POST(req) {
     );
   }
 }
-
