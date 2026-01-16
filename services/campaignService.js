@@ -61,11 +61,9 @@ export const deleteCampaign = async (campaignId) => {
     return await axiosInstance.delete(`${API_URL}/${campaignId}`);
 };
 
-
-// 🔹 Obtener detalle de una campaña con clientes paginados
 // 🔹 Obtener detalle de una campaña con clientes paginados
 export const getCampaignById = async (id, page = 1, pageSize = 10) => {
-    const response = await axiosInstance.get(`/campaings/${id}/clientes`, {
+    const response = await axiosInstance.get(`/campaigns/${id}/clientes`, {
       params: { page, pageSize },
     });
     return response.data;
@@ -110,7 +108,7 @@ export const removeClientFromCampaign = async (id, clientId) => {
       },
       body: JSON.stringify({ 
         campaignId: campaignId,
-        callbackUrl: `${window.location.origin}/api/campaings/${campaignId}/callback`
+        callbackUrl: `${window.location.origin}/api/campaigns/${campaignId}/callback`
       })
     });
 
